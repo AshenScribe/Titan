@@ -31,4 +31,40 @@ class ProductCachePropertiesValidationTests {
                 violations.stream()
                         .anyMatch(v -> v.getPropertyPath().toString().equals("l1MaximumSize")));
     }
+
+    @Test
+    void acceptsPositiveAndNonNegativeCacheDurations() {
+        ProductCacheProperties properties = new ProductCacheProperties();
+        properties.setL1Tti(Duration.ofSeconds(1));
+        properties.setTtlJitter(Duration.ZERO);
+        properties.setLockWait(Duration.ZERO);
+
+        assertTrue(properties.isL1TtlValid());
+        assertTrue(properties.isL1TtiValid());
+        assertTrue(properties.isL2TtlValid());
+        assertTrue(properties.isNegativeTtlValid());
+        assertTrue(properties.isTtlJitterValid());
+        assertTrue(properties.isLockLeaseValid());
+        assertTrue(properties.isLockWaitValid());
+    }
+
+    @Test
+    void rejectsNullCacheDurations() {
+        ProductCacheProperties properties = new ProductCacheProperties();
+        properties.setL1Ttl(null);
+        properties.setL1Tti(null);
+        properties.setL2Ttl(null);
+        properties.setNegativeTtl(null);
+        properties.setTtlJitter(null);
+        properties.setLockLease(null);
+        properties.setLockWait(null);
+
+        assertTrue(!properties.isL1TtlValid());
+        assertTrue(properties.isL1TtiValid());
+        assertTrue(!properties.isL2TtlValid());
+        assertTrue(!properties.isNegativeTtlValid());
+        assertTrue(!properties.isTtlJitterValid());
+        assertTrue(!properties.isLockLeaseValid());
+        assertTrue(!properties.isLockWaitValid());
+    }
 }
