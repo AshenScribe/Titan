@@ -23,6 +23,8 @@ springdoc:
   model-and-view-allowed: false
 
 titan:
+  grpc:
+    port: ${GRPC_PORT:9091}
   cache:
     l1-enabled: true
     l1-maximum-size: 10000

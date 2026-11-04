@@ -1,4 +1,13 @@
-package com.titan.productservice.cache;
+package com.titan.productservice.service;
+import com.titan.productservice.controller.*;
+import com.titan.productservice.service.*;
+import com.titan.productservice.dto.*;
+import com.titan.productservice.exception.*;
+import com.titan.productservice.config.*;
+import com.titan.productservice.entity.*;
+import com.titan.productservice.repository.*;
+import com.titan.productservice.util.*;
+import com.titan.productservice.CacheTestcontainersConfiguration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -6,8 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.titan.productservice.TestcontainersConfiguration;
-import com.titan.productservice.data.entity.ProductEntity;
-import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
+import com.titan.productservice.entity.ProductEntity;
+import com.titan.productservice.repository.AbstractRepositoryIntegrationTest;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -503,7 +512,7 @@ class ProductCacheIntegrationTests extends AbstractRepositoryIntegrationTest {
                 ((List<?>) ((Map<?, ?>) snapshot.metadata().get("nested")).get("list")).get(0));
     }
 
-    private com.titan.productservice.data.entity.ProductEntity activeProduct(
+    private com.titan.productservice.entity.ProductEntity activeProduct(
             String slug, String sku) {
         var product = product(slug);
         products.insert(product);

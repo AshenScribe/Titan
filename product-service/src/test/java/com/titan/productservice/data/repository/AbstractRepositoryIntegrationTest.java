@@ -1,11 +1,19 @@
-package com.titan.productservice.data.repository;
+package com.titan.productservice.repository;
+import com.titan.productservice.controller.*;
+import com.titan.productservice.service.*;
+import com.titan.productservice.dto.*;
+import com.titan.productservice.exception.*;
+import com.titan.productservice.config.*;
+import com.titan.productservice.entity.*;
+import com.titan.productservice.repository.*;
+import com.titan.productservice.util.*;
 
 import com.titan.productservice.TestcontainersConfiguration;
-import com.titan.productservice.data.entity.BrandEntity;
-import com.titan.productservice.data.entity.CategoryEntity;
-import com.titan.productservice.data.entity.ProductEntity;
-import com.titan.productservice.data.entity.ProductMediaEntity;
-import com.titan.productservice.data.entity.ProductVariantEntity;
+import com.titan.productservice.entity.BrandEntity;
+import com.titan.productservice.entity.CategoryEntity;
+import com.titan.productservice.entity.ProductEntity;
+import com.titan.productservice.entity.ProductMediaEntity;
+import com.titan.productservice.entity.ProductVariantEntity;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;

@@ -1,11 +1,19 @@
 package com.titan.productservice.integration;
+import com.titan.productservice.controller.*;
+import com.titan.productservice.service.*;
+import com.titan.productservice.dto.*;
+import com.titan.productservice.exception.*;
+import com.titan.productservice.config.*;
+import com.titan.productservice.entity.*;
+import com.titan.productservice.repository.*;
+import com.titan.productservice.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.titan.productservice.data.entity.ProductEntity;
-import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
+import com.titan.productservice.entity.ProductEntity;
+import com.titan.productservice.repository.AbstractRepositoryIntegrationTest;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -227,7 +235,7 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
     }
 
     private ConcurrencyResult insertMediaAfterBarrier(
-            com.titan.productservice.data.entity.ProductMediaEntity value,
+            com.titan.productservice.entity.ProductMediaEntity value,
             CyclicBarrier barrier,
             long expectedVersion) {
         value.setPrimary(true);
@@ -247,7 +255,7 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
         await(barrier);
         try {
             productCategories.insert(
-                    new com.titan.productservice.data.entity.ProductCategoryEntity(
+                    new com.titan.productservice.entity.ProductCategoryEntity(
                             productId, categoryId, true, null),
                     expectedVersion);
             return new Success();
@@ -259,7 +267,7 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
     }
 
     private ConcurrencyResult moveCategoryAfterBarrier(
-            com.titan.productservice.data.entity.CategoryEntity value,
+            com.titan.productservice.entity.CategoryEntity value,
             UUID parentId,
             CyclicBarrier barrier) {
         value.setParentId(parentId);

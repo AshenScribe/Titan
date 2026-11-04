@@ -1,4 +1,7 @@
 package com.titan.productservice.config;
+import com.titan.productservice.entity.*;
+import com.titan.productservice.util.*;
+import com.titan.productservice.controller.*;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.ExternalDocumentation;
