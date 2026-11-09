@@ -1,12 +1,4 @@
 package com.titan.productservice.integration;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.config.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -14,7 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.titan.productservice.repository.AbstractRepositoryIntegrationTest;
+import com.titan.productservice.config.*;
+import com.titan.productservice.controller.*;
+import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
+import com.titan.productservice.dto.*;
+import com.titan.productservice.entity.*;
+import com.titan.productservice.exception.*;
+import com.titan.productservice.repository.*;
+import com.titan.productservice.service.*;
+import com.titan.productservice.util.*;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;

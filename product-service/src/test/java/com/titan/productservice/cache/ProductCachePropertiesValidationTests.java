@@ -1,15 +1,8 @@
-package com.titan.productservice.config;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.config.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.util.*;
+package com.titan.productservice.cache;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.titan.productservice.config.ProductCacheProperties;
 import jakarta.validation.Validation;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;

@@ -1,18 +1,11 @@
-package com.titan.productservice.service;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.config.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.util.*;
+package com.titan.productservice.cache;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.titan.productservice.TestcontainersConfiguration;
-import com.titan.productservice.repository.AbstractRepositoryIntegrationTest;
+import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
+import com.titan.productservice.service.ProductCacheService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

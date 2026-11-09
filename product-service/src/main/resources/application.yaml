@@ -12,7 +12,10 @@ spring:
       max-lifetime: 1800000
   application:
     name: product-service
-
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
 springdoc:
   api-docs:
     path: /v3/api-docs

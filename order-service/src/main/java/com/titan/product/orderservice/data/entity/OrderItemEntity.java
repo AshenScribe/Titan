@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,29 +21,25 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.product.orderservice.data.entity;
-import com.titan.product.orderservice.config.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Represents an entry in the order_items table.
- */
+/** Represents an entry in the order_items table. */
 public record OrderItemEntity(
-		UUID id,
-		UUID orderId,
-		UUID productId,
-		UUID variantId,
-		String productName,
-		String variantName,
-		String sku,
-		String attributes,
-		Integer quantity,
-		BigDecimal unitPrice,
-		Short position,
-		OffsetDateTime createdAt
-) {}
+        UUID id,
+        UUID orderId,
+        UUID productId,
+        UUID variantId,
+        String productName,
+        String variantName,
+        String sku,
+        String attributes,
+        Integer quantity,
+        BigDecimal unitPrice,
+        Short position,
+        OffsetDateTime createdAt) {}

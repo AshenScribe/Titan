@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,22 +21,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.product.orderservice.data.entity;
-import com.titan.product.orderservice.config.*;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/**
- * Represents an entry in the order_idempotency table.
- */
+/** Represents an entry in the order_idempotency table. */
 public record OrderIdempotencyEntity(
-		UUID userId,
-		String idempotencyKey,
-		byte[] requestHash,
-		UUID orderId,
-		OffsetDateTime createdAt,
-		OffsetDateTime expiresAt
-) {}
+        UUID userId,
+        String idempotencyKey,
+        byte[] requestHash,
+        UUID orderId,
+        OffsetDateTime createdAt,
+        OffsetDateTime expiresAt) {
+    public OrderIdempotencyEntity {
+        requestHash = requestHash == null ? null : requestHash.clone();
+    }
+
+    @Override
+    public byte[] requestHash() {
+        return requestHash == null ? null : requestHash.clone();
+    }
+}

@@ -1,19 +1,41 @@
-package com.titan.productservice.repository;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.config.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.util.*;
+// ------------------------------------------------------------------------------
+// MIT License
+//
+// Copyright (c) 2026 Rishabh Saraswat
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// ------------------------------------------------------------------------------
+
+package com.titan.productservice.data.repository;
 
 import com.titan.productservice.TestcontainersConfiguration;
-import com.titan.productservice.entity.BrandEntity;
 import com.titan.productservice.entity.CategoryEntity;
 import com.titan.productservice.entity.ProductEntity;
 import com.titan.productservice.entity.ProductMediaEntity;
 import com.titan.productservice.entity.ProductVariantEntity;
+import com.titan.productservice.repository.BrandRepository;
+import com.titan.productservice.repository.CategoryRepository;
+import com.titan.productservice.repository.ProductCategoryRepository;
+import com.titan.productservice.repository.ProductMediaRepository;
+import com.titan.productservice.repository.ProductRepository;
+import com.titan.productservice.repository.ProductVariantRepository;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
@@ -40,20 +62,6 @@ public abstract class AbstractRepositoryIntegrationTest {
     protected void cleanDatabase() {
         jdbc.execute(
                 "TRUNCATE product_media, product_variants, product_categories, products, categories, brands CASCADE");
-    }
-
-    protected BrandEntity brand(String slug) {
-        return new BrandEntity(
-                UUID.randomUUID(),
-                "Brand " + slug,
-                slug,
-                null,
-                null,
-                null,
-                Map.of("nested", Map.of("enabled", true)),
-                true,
-                null,
-                null);
     }
 
     protected CategoryEntity category(String slug, UUID parentId) {

@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.product.orderservice.data.entity;
 
@@ -29,33 +29,33 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum OrderStatus {
-	PENDING("pending"),
-	PAYMENT_PROCESSING("payment_processing"),
-	PAID("paid"),
-	FULFILLMENT("fulfillment"),
-	SHIPPED("shipped"),
-	DELIVERED("delivered"),
-	CANCELLED("cancelled"),
-	REFUNDED("refunded");
+    PENDING("pending"),
+    PAYMENT_PROCESSING("payment_processing"),
+    PAID("paid"),
+    FULFILLMENT("fulfillment"),
+    SHIPPED("shipped"),
+    DELIVERED("delivered"),
+    CANCELLED("cancelled"),
+    REFUNDED("refunded");
 
-	private final String value;
+    private final String value;
 
-	OrderStatus(String value) {
-		this.value = value;
-	}
+    OrderStatus(String value) {
+        this.value = value;
+    }
 
-	@JsonValue
-	public String getValue() {
-		return value;
-	}
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
 
-	@JsonCreator
-	public static OrderStatus fromValue(String value) {
-		for (OrderStatus status : OrderStatus.values()) {
-			if (status.value.equalsIgnoreCase(value)) {
-				return status;
-			}
-		}
-		throw new IllegalArgumentException("Unknown order status: " + value);
-	}
+    @JsonCreator
+    public static OrderStatus fromValue(String value) {
+        for (OrderStatus status : OrderStatus.values()) {
+            if (status.value.equalsIgnoreCase(value)) {
+                return status;
+            }
+        }
+        throw new IllegalArgumentException("Unknown order status: " + value);
+    }
 }

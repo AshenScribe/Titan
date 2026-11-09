@@ -38,7 +38,7 @@ CREATE TABLE orders
     id                    UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
     user_id               UUID           NOT NULL,
     status                order_status   NOT NULL DEFAULT 'pending',
-    currency              CHAR(3)        NOT NULL DEFAULT 'INR'
+    currency VARCHAR NOT NULL DEFAULT 'INR'
         CHECK (currency ~ '^[A-Z]{3}$'),
     subtotal_amount       NUMERIC(12, 2) NOT NULL
         CHECK (subtotal_amount >= 0),

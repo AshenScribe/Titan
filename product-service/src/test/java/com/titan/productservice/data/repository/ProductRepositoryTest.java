@@ -1,12 +1,4 @@
-package com.titan.productservice.repository;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.config.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.util.*;
+package com.titan.productservice.data.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -20,7 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 
-class ProductRepositoryIntegrationTests extends AbstractRepositoryIntegrationTest {
+class ProductRepositoryTest
+        extends com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest {
     @Test
     void insertFindUpdateAndActivePagination() {
         ProductEntity value = product("draft");

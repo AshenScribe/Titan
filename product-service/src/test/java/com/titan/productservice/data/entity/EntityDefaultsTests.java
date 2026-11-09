@@ -1,17 +1,16 @@
 package com.titan.productservice.entity;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.config.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 
+import com.titan.productservice.config.*;
+import com.titan.productservice.controller.*;
+import com.titan.productservice.dto.*;
+import com.titan.productservice.exception.*;
+import com.titan.productservice.repository.*;
+import com.titan.productservice.service.*;
+import com.titan.productservice.util.*;
 import java.util.HashMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

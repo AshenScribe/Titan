@@ -1,18 +1,17 @@
-package com.titan.productservice.repository;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.config.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.util.*;
+package com.titan.productservice.data.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.titan.productservice.config.*;
+import com.titan.productservice.controller.*;
+import com.titan.productservice.dto.*;
+import com.titan.productservice.entity.*;
+import com.titan.productservice.exception.*;
+import com.titan.productservice.service.*;
+import com.titan.productservice.util.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;

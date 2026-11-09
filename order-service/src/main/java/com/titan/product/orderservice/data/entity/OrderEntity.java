@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,34 +21,34 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.product.orderservice.data.entity;
+
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public record OrderEntity(
-		UUID id,
-		UUID userId,
-		OrderStatus status,
-		String currency,
-		BigDecimal subtotalAmount,
-		BigDecimal taxAmount,
-		BigDecimal shippingAmount,
-		BigDecimal discountAmount,
-		BigDecimal totalAmount, // Generated stored column in DB
-		String shippingAddress, // JSONB serialized as JSON string or JsonNode
-		String billingAddress,  // JSONB serialized as JSON string or JsonNode
-		String customerNote,
-		Long version,
-		OffsetDateTime inventoryReservedAt,
-		OffsetDateTime paidAt,
-		OffsetDateTime confirmedAt,
-		OffsetDateTime shippedAt,
-		OffsetDateTime deliveredAt,
-		OffsetDateTime cancelledAt,
-		OffsetDateTime refundedAt,
-		OffsetDateTime createdAt,
-		OffsetDateTime updatedAt
-) {}
+        UUID id,
+        UUID userId,
+        OrderStatus status,
+        String currency,
+        BigDecimal subtotalAmount,
+        BigDecimal taxAmount,
+        BigDecimal shippingAmount,
+        BigDecimal discountAmount,
+        BigDecimal totalAmount, // Generated stored column in DB
+        String shippingAddress, // JSONB serialized as JSON string or JsonNode
+        String billingAddress, // JSONB serialized as JSON string or JsonNode
+        String customerNote,
+        Long version,
+        OffsetDateTime inventoryReservedAt,
+        OffsetDateTime paidAt,
+        OffsetDateTime confirmedAt,
+        OffsetDateTime shippedAt,
+        OffsetDateTime deliveredAt,
+        OffsetDateTime cancelledAt,
+        OffsetDateTime refundedAt,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt) {}

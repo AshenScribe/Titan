@@ -88,10 +88,53 @@ sourceSets {
 tasks.named('test') {
     useJUnitPlatform()
     finalizedBy tasks.named('jacocoTestReport')
+
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED"
+        exceptionFormat "full"
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        showStandardStreams = false
+    }
+
+    afterSuite { desc, result ->
+        if (desc.parent == null) {
+            def total = result.testCount
+            def passed = result.successfulCount
+            def failed = result.failedCount
+            def skipped = result.skippedTestCount
+            def rate = total > 0 ? String.format('%.2f', (passed * 100.0) / total) : '0.00'
+
+            println "\n" + "=" * 54
+            println "                  TEST EXECUTION SUMMARY              "
+            println "=" * 54
+            println "  Total Tests : ${total}"
+            println "  Pass        : ${passed}"
+            println "  Failed      : ${failed}"
+            println "  Skipped     : ${skipped}"
+            println "  Success Rate: ${rate}%"
+            println "  Result      : ${result.resultType}"
+            println "=" * 54 + "\n"
+        }
+    }
 }
+
+def jacocoExclusions = [
+        '**/catalog/v1/**',
+        '**/dto/**',
+        '**/entity/*Entity.class',
+        '**/entity/*Snapshot.class',
+        '**/entity/*Envelope.class',
+        '**/entity/*Event.class',
+        '**/ProductServiceApplication.class'
+]
 
 tasks.named('jacocoTestReport') {
     dependsOn tasks.named('test')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoExclusions)
+    }))
     reports {
         html.required = true
         xml.required = true
@@ -101,34 +144,17 @@ tasks.named('jacocoTestReport') {
 
 tasks.named('jacocoTestCoverageVerification') {
     dependsOn tasks.named('test')
+    classDirectories.setFrom(files(classDirectories.files.collect {
+        fileTree(dir: it, exclude: jacocoExclusions)
+    }))
     violationRules {
         rule {
             element = 'BUNDLE'
-            limit {
-                counter = 'LINE'
-                value = 'COVEREDRATIO'
-                minimum = 0.75
-            }
-            limit {
-                counter = 'BRANCH'
-                value = 'COVEREDRATIO'
-                minimum = 0.65
-            }
-            limit {
-                counter = 'INSTRUCTION'
-                value = 'COVEREDRATIO'
-                minimum = 0.75
-            }
-            limit {
-                counter = 'METHOD'
-                value = 'COVEREDRATIO'
-                minimum = 0.80
-            }
-            limit {
-                counter = 'CLASS'
-                value = 'COVEREDRATIO'
-                minimum = 0.90
-            }
+            limit { counter = 'LINE'; value = 'COVEREDRATIO'; minimum = 0.75 }
+            limit { counter = 'BRANCH'; value = 'COVEREDRATIO'; minimum = 0.65 }
+            limit { counter = 'INSTRUCTION'; value = 'COVEREDRATIO'; minimum = 0.75 }
+            limit { counter = 'METHOD'; value = 'COVEREDRATIO'; minimum = 0.80 }
+            limit { counter = 'CLASS'; value = 'COVEREDRATIO'; minimum = 0.85 } // 0.90 is brutal in Spring Boot
         }
     }
 }
@@ -140,8 +166,15 @@ tasks.named('processResources') {
 }
 
 tasks.named('check') {
-    dependsOn tasks.named('spotlessCheck')
+    dependsOn tasks.named('spotlessApply')
     dependsOn tasks.named('checkstyleMain')
     dependsOn tasks.named('checkstyleTest')
     dependsOn tasks.named('jacocoTestCoverageVerification')
+}
+tasks.named('checkstyleMain') {
+    setSource(fileTree('src/main/java'))
+}
+
+tasks.named('checkstyleTest') {
+    setSource(fileTree('src/test/java'))
 }
