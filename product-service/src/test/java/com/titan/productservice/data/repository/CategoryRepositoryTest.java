@@ -14,6 +14,11 @@ import com.titan.productservice.data.exception.ProductSQLExceptionTranslator;
 import com.titan.productservice.data.exception.ProductStringTruncationException;
 import com.titan.productservice.data.exception.ProductUniqueViolationException;
 import com.titan.productservice.presentation.dto.CategoryListQuery;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -28,25 +33,22 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Stream;
-
 @JdbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({TestcontainersConfiguration.class, CategoryRepository.class, ProductRepository.class, ProductCategoryRepository.class, ProductDataSourceConfig.class, ProductSQLExceptionTranslator.class})
+@Import({
+    TestcontainersConfiguration.class,
+    CategoryRepository.class,
+    ProductRepository.class,
+    ProductCategoryRepository.class,
+    ProductDataSourceConfig.class,
+    ProductSQLExceptionTranslator.class
+})
 class CategoryRepositoryTest {
 
-    @Autowired
-    private CategoryRepository categories;
-    @Autowired
-    private ProductRepository products;
-    @Autowired
-    private ProductCategoryRepository productCategories;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @Autowired private CategoryRepository categories;
+    @Autowired private ProductRepository products;
+    @Autowired private ProductCategoryRepository productCategories;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
@@ -63,11 +65,20 @@ class CategoryRepositoryTest {
         CategoryEntity root = category("root", null);
         categories.insert(root);
 
-        Assertions.assertThat(categories.findById(root.getId())).get().extracting(CategoryEntity::getId).isEqualTo(root.getId());
+        Assertions.assertThat(categories.findById(root.getId()))
+                .get()
+                .extracting(CategoryEntity::getId)
+                .isEqualTo(root.getId());
 
-        Assertions.assertThat(categories.findBySlug("ROOT")).get().extracting(CategoryEntity::getId).isEqualTo(root.getId());
+        Assertions.assertThat(categories.findBySlug("ROOT"))
+                .get()
+                .extracting(CategoryEntity::getId)
+                .isEqualTo(root.getId());
 
-        Assertions.assertThat(categories.findBySlug("rOoT")).get().extracting(CategoryEntity::getId).isEqualTo(root.getId());
+        Assertions.assertThat(categories.findBySlug("rOoT"))
+                .get()
+                .extracting(CategoryEntity::getId)
+                .isEqualTo(root.getId());
     }
 
     @Test
@@ -163,7 +174,9 @@ class CategoryRepositoryTest {
         categories.insert(unrelated);
 
         List<CategoryEntity> children = categories.findChildren(root.getId(), 10, 0);
-        Assertions.assertThat(children).extracting(CategoryEntity::getId).containsExactly(early.getId(), late.getId());
+        Assertions.assertThat(children)
+                .extracting(CategoryEntity::getId)
+                .containsExactly(early.getId(), late.getId());
     }
 
     @Test
@@ -173,7 +186,9 @@ class CategoryRepositoryTest {
         categories.insert(a);
         categories.insert(b);
 
-        Assertions.assertThat(categories.findChildren(null, 10, 0)).extracting(CategoryEntity::getId).containsExactlyInAnyOrder(a.getId(), b.getId());
+        Assertions.assertThat(categories.findChildren(null, 10, 0))
+                .extracting(CategoryEntity::getId)
+                .containsExactlyInAnyOrder(a.getId(), b.getId());
     }
 
     @Test
@@ -204,7 +219,9 @@ class CategoryRepositoryTest {
         categories.insert(activeEarly);
         categories.insert(inactive);
 
-        Assertions.assertThat(categories.findActive(10, 0)).extracting(CategoryEntity::getId).containsExactly(activeEarly.getId(), activeLate.getId());
+        Assertions.assertThat(categories.findActive(10, 0))
+                .extracting(CategoryEntity::getId)
+                .containsExactly(activeEarly.getId(), activeLate.getId());
     }
 
     @Test
@@ -214,7 +231,9 @@ class CategoryRepositoryTest {
         categories.insert(a);
         categories.insert(b);
 
-        Assertions.assertThat(categories.findByIds(List.of(a.getId(), b.getId()))).extracting(CategoryEntity::getId).containsExactlyInAnyOrder(a.getId(), b.getId());
+        Assertions.assertThat(categories.findByIds(List.of(a.getId(), b.getId())))
+                .extracting(CategoryEntity::getId)
+                .containsExactlyInAnyOrder(a.getId(), b.getId());
 
         Assertions.assertThat(categories.findByIds(List.of())).isEmpty();
     }
@@ -271,7 +290,9 @@ class CategoryRepositoryTest {
         categories.insert(root);
         categories.insert(child);
 
-        Assertions.assertThat(categories.findAllHierarchy()).extracting(CategoryEntity::getId).containsExactly(root.getId(), child.getId());
+        Assertions.assertThat(categories.findAllHierarchy())
+                .extracting(CategoryEntity::getId)
+                .containsExactly(root.getId(), child.getId());
     }
 
     @Test
@@ -285,7 +306,9 @@ class CategoryRepositoryTest {
         categories.insert(grandchild);
         categories.insert(unrelated);
 
-        Assertions.assertThat(categories.findDescendants(root.getId())).extracting(CategoryEntity::getId).containsExactlyInAnyOrder(child.getId(), grandchild.getId());
+        Assertions.assertThat(categories.findDescendants(root.getId()))
+                .extracting(CategoryEntity::getId)
+                .containsExactlyInAnyOrder(child.getId(), grandchild.getId());
 
         Assertions.assertThat(categories.findDescendants(unrelated.getId())).isEmpty();
     }
@@ -320,23 +343,30 @@ class CategoryRepositoryTest {
         value.setMetadata(null);
         categories.insert(value);
 
-        Assertions.assertThat(categories.findById(value.getId()).orElseThrow().getMetadata()).isEmpty();
+        Assertions.assertThat(categories.findById(value.getId()).orElseThrow().getMetadata())
+                .isEmpty();
     }
 
     @ParameterizedTest(name = "limit={0} offset={1}")
     @MethodSource("invalidBounds")
     void findActiveRejectsInvalidBounds(int limit, int offset) {
-        Assertions.assertThatThrownBy(() -> categories.findActive(limit, offset)).isInstanceOf(IllegalArgumentException.class);
+        Assertions.assertThatThrownBy(() -> categories.findActive(limit, offset))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @ParameterizedTest(name = "limit={0} offset={1}")
     @MethodSource("invalidBounds")
     void findChildrenRejectsInvalidBounds(int limit, int offset) {
-        Assertions.assertThatThrownBy(() -> categories.findChildren(null, limit, offset)).isInstanceOf(IllegalArgumentException.class);
+        Assertions.assertThatThrownBy(() -> categories.findChildren(null, limit, offset))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     static Stream<Arguments> invalidBounds() {
-        return Stream.of(Arguments.of(0, 0), Arguments.of(-1, 0), Arguments.of(10, -1), Arguments.of(10, -100));
+        return Stream.of(
+                Arguments.of(0, 0),
+                Arguments.of(-1, 0),
+                Arguments.of(10, -1),
+                Arguments.of(10, -100));
     }
 
     @ParameterizedTest(name = "page={0} size={1}")
@@ -346,11 +376,16 @@ class CategoryRepositoryTest {
         query.setPage(page);
         query.setSize(size);
 
-        Assertions.assertThatThrownBy(() -> categories.findPage(query)).isInstanceOf(IllegalArgumentException.class);
+        Assertions.assertThatThrownBy(() -> categories.findPage(query))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     static Stream<Arguments> invalidPageBounds() {
-        return Stream.of(Arguments.of(-1, 10), Arguments.of(0, 0), Arguments.of(0, 101), Arguments.of(0, -5));
+        return Stream.of(
+                Arguments.of(-1, 10),
+                Arguments.of(0, 0),
+                Arguments.of(0, 101),
+                Arguments.of(0, -5));
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -358,7 +393,8 @@ class CategoryRepositoryTest {
     void duplicateSlugIsRejectedCaseInsensitively() {
         categories.insert(category("same", null));
 
-        Assertions.assertThatThrownBy(() -> categories.insert(category("SAME", null))).isInstanceOf(DuplicateCategorySlugException.class);
+        Assertions.assertThatThrownBy(() -> categories.insert(category("SAME", null)))
+                .isInstanceOf(DuplicateCategorySlugException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -369,7 +405,8 @@ class CategoryRepositoryTest {
         categories.insert(other);
 
         other.setSlug("TAKEN");
-        Assertions.assertThatThrownBy(() -> categories.update(other)).isInstanceOf(DuplicateCategorySlugException.class);
+        Assertions.assertThatThrownBy(() -> categories.update(other))
+                .isInstanceOf(DuplicateCategorySlugException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -377,7 +414,8 @@ class CategoryRepositoryTest {
     void insertWithInvalidParentIdIsRejected() {
         CategoryEntity invalid = category("invalid-parent", UUID.randomUUID());
 
-        Assertions.assertThatThrownBy(() -> categories.insert(invalid)).isInstanceOf(ProductForeignKeyViolationException.class);
+        Assertions.assertThatThrownBy(() -> categories.insert(invalid))
+                .isInstanceOf(ProductForeignKeyViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -389,7 +427,8 @@ class CategoryRepositoryTest {
         categories.insert(child);
 
         root.setParentId(child.getId());
-        Assertions.assertThatThrownBy(() -> categories.update(root)).isInstanceOf(CategoryHierarchyCycleException.class);
+        Assertions.assertThatThrownBy(() -> categories.update(root))
+                .isInstanceOf(CategoryHierarchyCycleException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -399,7 +438,8 @@ class CategoryRepositoryTest {
         categories.insert(parent);
         categories.insert(category("child", parent.getId()));
 
-        Assertions.assertThatThrownBy(() -> categories.deleteById(parent.getId())).isInstanceOf(ProductForeignKeyViolationException.class);
+        Assertions.assertThatThrownBy(() -> categories.deleteById(parent.getId()))
+                .isInstanceOf(ProductForeignKeyViolationException.class);
 
         Assertions.assertThat(categories.findById(parent.getId())).isPresent();
     }
@@ -412,9 +452,11 @@ class CategoryRepositoryTest {
 
         ProductEntity product = product("category-reference");
         products.insert(product);
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
 
-        Assertions.assertThatThrownBy(() -> categories.deleteById(value.getId())).isInstanceOf(ProductForeignKeyViolationException.class);
+        Assertions.assertThatThrownBy(() -> categories.deleteById(value.getId()))
+                .isInstanceOf(ProductForeignKeyViolationException.class);
 
         Assertions.assertThat(categories.findById(value.getId())).isPresent();
     }
@@ -425,7 +467,8 @@ class CategoryRepositoryTest {
         CategoryEntity blank = category("blank", null);
         blank.setName(" ");
 
-        Assertions.assertThatThrownBy(() -> categories.insert(blank)).isInstanceOf(ProductCheckConstraintViolationException.class);
+        Assertions.assertThatThrownBy(() -> categories.insert(blank))
+                .isInstanceOf(ProductCheckConstraintViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -434,7 +477,8 @@ class CategoryRepositoryTest {
         CategoryEntity longName = category("long-name", null);
         longName.setName("x".repeat(151));
 
-        Assertions.assertThatThrownBy(() -> categories.insert(longName)).isInstanceOf(ProductStringTruncationException.class);
+        Assertions.assertThatThrownBy(() -> categories.insert(longName))
+                .isInstanceOf(ProductStringTruncationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -442,7 +486,8 @@ class CategoryRepositoryTest {
     void slugLongerThan180CharsIsRejected() {
         CategoryEntity longSlug = category("x".repeat(181), null);
 
-        Assertions.assertThatThrownBy(() -> categories.insert(longSlug)).isInstanceOf(ProductStringTruncationException.class);
+        Assertions.assertThatThrownBy(() -> categories.insert(longSlug))
+                .isInstanceOf(ProductStringTruncationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -451,7 +496,8 @@ class CategoryRepositoryTest {
         CategoryEntity value = category("null-name", null);
         value.setName(null);
 
-        Assertions.assertThatThrownBy(() -> categories.insert(value)).isInstanceOf(ProductNotNullViolationException.class);
+        Assertions.assertThatThrownBy(() -> categories.insert(value))
+                .isInstanceOf(ProductNotNullViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -460,13 +506,22 @@ class CategoryRepositoryTest {
         CategoryEntity value = category("null-slug", null);
         value.setSlug(null);
 
-        Assertions.assertThatThrownBy(() -> categories.insert(value)).isInstanceOf(ProductNotNullViolationException.class);
+        Assertions.assertThatThrownBy(() -> categories.insert(value))
+                .isInstanceOf(ProductNotNullViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Test
     void metadataMustBeJsonObject() {
-        Assertions.assertThatThrownBy(() -> jdbcTemplate.update("INSERT INTO categories(id, name, slug, metadata) VALUES (?, ?, ?, ?::jsonb)", UUID.randomUUID(), "B", "b", "[1,2,3]")).isInstanceOf(ProductCheckConstraintViolationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                jdbcTemplate.update(
+                                        "INSERT INTO categories(id, name, slug, metadata) VALUES (?, ?, ?, ?::jsonb)",
+                                        UUID.randomUUID(),
+                                        "B",
+                                        "b",
+                                        "[1,2,3]"))
+                .isInstanceOf(ProductCheckConstraintViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -475,16 +530,39 @@ class CategoryRepositoryTest {
         CategoryEntity a = category("batch-a", null);
         CategoryEntity duplicate = category("batch-a", null);
 
-        Assertions.assertThatThrownBy(() -> categories.insertBatch(List.of(a, duplicate))).isInstanceOf(ProductUniqueViolationException.class);
+        Assertions.assertThatThrownBy(() -> categories.insertBatch(List.of(a, duplicate)))
+                .isInstanceOf(ProductUniqueViolationException.class);
 
         Assertions.assertThat(categories.findById(a.getId())).isEmpty();
     }
 
     private CategoryEntity category(String slug, UUID parentId) {
-        return new CategoryEntity(UUID.randomUUID(), parentId, "Category " + slug, slug, null, Map.of("nested", Map.of("enabled", true)), 0, true, null, null);
+        return new CategoryEntity(
+                UUID.randomUUID(),
+                parentId,
+                "Category " + slug,
+                slug,
+                null,
+                Map.of("nested", Map.of("enabled", true)),
+                0,
+                true,
+                null,
+                null);
     }
 
     private ProductEntity product(String slug) {
-        return new ProductEntity(UUID.randomUUID(), null, "Product " + slug, slug, null, "DRAFT", Map.of("nested", Map.of("value", 1)), 0, null, null, null, null);
+        return new ProductEntity(
+                UUID.randomUUID(),
+                null,
+                "Product " + slug,
+                slug,
+                null,
+                "DRAFT",
+                Map.of("nested", Map.of("value", 1)),
+                0,
+                null,
+                null,
+                null,
+                null);
     }
 }

@@ -48,7 +48,9 @@ import org.springframework.test.context.jdbc.Sql;
 @JdbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({TestcontainersConfiguration.class, OrderRepository.class, OrderItemRepository.class})
-@Sql(scripts = "/db/migration/V1__create_orders.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@Sql(
+        scripts = "/db/migration/V1__create_orders.sql",
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class OrderItemRepositoryTest {
 
     private static final OffsetDateTime TEST_TIME =

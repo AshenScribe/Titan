@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,16 +21,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.presentation.controller;
 
+import com.titan.productservice.domain.service.ProductService;
 import com.titan.productservice.presentation.dto.PageResponse;
 import com.titan.productservice.presentation.dto.ProductCreateRequest;
 import com.titan.productservice.presentation.dto.ProductListQuery;
 import com.titan.productservice.presentation.dto.ProductResponse;
 import com.titan.productservice.presentation.dto.ProductUpdateRequest;
-import com.titan.productservice.service.ProductService;
 import com.titan.productservice.util.IfMatch;
 import com.titan.productservice.util.VersionHeaderParser;
 import io.swagger.v3.oas.annotations.Operation;

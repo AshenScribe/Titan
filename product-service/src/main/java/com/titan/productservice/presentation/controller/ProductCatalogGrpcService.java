@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.presentation.controller;
 
@@ -29,7 +29,7 @@ import com.titan.product.catalog.v1.GetActiveVariantRequest;
 import com.titan.product.catalog.v1.GetActiveVariantResponse;
 import com.titan.product.catalog.v1.ProductCatalogServiceGrpc;
 import com.titan.productservice.data.entity.ProductVariantEntity;
-import com.titan.productservice.service.ProductService;
+import com.titan.productservice.domain.service.ProductService;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import java.util.UUID;

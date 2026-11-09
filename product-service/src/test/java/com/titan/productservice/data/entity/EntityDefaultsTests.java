@@ -8,7 +8,6 @@ import com.titan.productservice.data.entity.BrandEntity;
 import com.titan.productservice.data.entity.CategoryEntity;
 import com.titan.productservice.data.entity.ProductEntity;
 import com.titan.productservice.data.entity.ProductVariantEntity;
-
 import java.util.HashMap;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

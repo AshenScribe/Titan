@@ -54,7 +54,9 @@ import org.springframework.test.context.jdbc.Sql;
     OrderRepository.class,
     OrderIdempotencyRepository.class
 })
-@Sql(scripts = "/db/migration/V1__create_orders.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@Sql(
+        scripts = "/db/migration/V1__create_orders.sql",
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class OrderIdempotencyRepositoryTest {
 
     private static final OffsetDateTime NOW =

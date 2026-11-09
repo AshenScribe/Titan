@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.data.repository;
 
@@ -30,11 +30,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.titan.productservice.data.entity.BrandEntity;
 import com.titan.productservice.presentation.dto.BrandListQuery;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Repository;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -45,13 +40,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
 
 @Repository
 public class BrandRepository {
 
-    private static final String COLUMNS = "id, name, slug, description, website_url, logo_url, metadata, is_active, created_at, updated_at";
-    private static final String SELECT_BY_ID_SQL = "SELECT " + COLUMNS + " FROM brands WHERE id = ?";
-    private static final String SELECT_BY_SLUG_SQL = "SELECT " + COLUMNS + " FROM brands WHERE LOWER(slug) = LOWER(?)";
+    private static final String COLUMNS =
+            "id, name, slug, description, website_url, logo_url, metadata, is_active, created_at, updated_at";
+    private static final String SELECT_BY_ID_SQL =
+            "SELECT " + COLUMNS + " FROM brands WHERE id = ?";
+    private static final String SELECT_BY_SLUG_SQL =
+            "SELECT " + COLUMNS + " FROM brands WHERE LOWER(slug) = LOWER(?)";
     private static final String SELECT_ACTIVE_SQL =
             "SELECT "
                     + COLUMNS
@@ -75,17 +77,21 @@ public class BrandRepository {
     }
 
     public void insert(BrandEntity brandEntity) {
-        jdbcTemplate.update(INSERT_SQL, statement -> {
-            statement.setObject(1, brandEntity.getId());
-            bindMutableFields(statement, brandEntity, 2);
-        });
+        jdbcTemplate.update(
+                INSERT_SQL,
+                statement -> {
+                    statement.setObject(1, brandEntity.getId());
+                    bindMutableFields(statement, brandEntity, 2);
+                });
     }
 
     public int update(BrandEntity brandEntity) {
-        return jdbcTemplate.update(UPDATE_SQL, statement -> {
-            bindMutableFields(statement, brandEntity, 1);
-            statement.setObject(8, brandEntity.getId());
-        });
+        return jdbcTemplate.update(
+                UPDATE_SQL,
+                statement -> {
+                    bindMutableFields(statement, brandEntity, 1);
+                    statement.setObject(8, brandEntity.getId());
+                });
     }
 
     public Optional<BrandEntity> findById(UUID id) {
@@ -144,9 +150,7 @@ public class BrandRepository {
         }
     }
 
-    public record BrandPage(List<BrandEntity> brands, int totalElements) {
-
-    }
+    public record BrandPage(List<BrandEntity> brands, int totalElements) {}
 
     public int deleteById(UUID id) {
         return jdbcTemplate.update(DELETE_SQL, id);
@@ -215,11 +219,9 @@ public class BrandRepository {
             return new HashMap<>();
         }
         try {
-            return objectMapper.readValue(metadata, new TypeReference<>() {
-            });
+            return objectMapper.readValue(metadata, new TypeReference<>() {});
         } catch (JsonProcessingException exception) {
             throw new SQLException("Brand metadata contains invalid JSON", exception);
         }
     }
-
 }

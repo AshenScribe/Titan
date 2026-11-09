@@ -30,7 +30,6 @@ import com.titan.productservice.data.entity.CategoryEntity;
 import com.titan.productservice.data.entity.ProductEntity;
 import com.titan.productservice.data.entity.ProductMediaEntity;
 import com.titan.productservice.data.entity.ProductVariantEntity;
-
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;

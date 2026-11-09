@@ -1,8 +1,7 @@
 package com.titan.productservice.data.exception;
 
-import org.springframework.dao.DataAccessException;
-
 import java.sql.SQLException;
+import org.springframework.dao.DataAccessException;
 
 public sealed class ProductDataException extends DataAccessException
         permits ProductCheckConstraintViolationException,

@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,28 +21,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.cache;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.titan.productservice.TestcontainersConfiguration;
 import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
-import com.titan.productservice.service.ProductCacheService;
+import com.titan.productservice.domain.service.ProductCacheService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = {"titan.cache.l2-enabled=false"})
 class ProductCacheL2DisabledTest extends AbstractRepositoryIntegrationTest {
-    @Autowired
-    private ProductCacheService cache;
-    
+    @Autowired private ProductCacheService cache;
+
     @Test
     void readsFromDatabaseWhenL2IsDisabled() {
         var product = product("no-l2");

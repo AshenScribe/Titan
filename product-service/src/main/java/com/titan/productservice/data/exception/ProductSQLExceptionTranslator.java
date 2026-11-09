@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,16 +21,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.data.exception;
 
+import java.sql.SQLException;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.support.SQLExceptionTranslator;
 import org.springframework.jdbc.support.SQLStateSQLExceptionTranslator;
 import org.springframework.stereotype.Component;
-
-import java.sql.SQLException;
 
 @Component
 public final class ProductSQLExceptionTranslator implements SQLExceptionTranslator {
@@ -85,7 +84,9 @@ public final class ProductSQLExceptionTranslator implements SQLExceptionTranslat
             case "uq_product_primary_media" -> new DuplicatePrimaryMediaException(ex);
             case "uq_product_primary_category" -> new DuplicatePrimaryCategoryException(ex);
             case "uq_product_media_position" -> new DuplicateProductMediaPositionException(ex);
-            default -> new ProductUniqueViolationException("Unique constraint violation: " + constraint, ex);
+            default ->
+                    new ProductUniqueViolationException(
+                            "Unique constraint violation: " + constraint, ex);
         };
     }
 
@@ -97,7 +98,8 @@ public final class ProductSQLExceptionTranslator implements SQLExceptionTranslat
             if (message.contains("must have at least one active variant")) {
                 return new ActiveProductRequiresVariantException(ex);
             }
-            if (message.contains("Category hierarchy cycle") || message.contains("cannot be its own parent")) {
+            if (message.contains("Category hierarchy cycle")
+                    || message.contains("cannot be its own parent")) {
                 return new CategoryHierarchyCycleException(ex);
             }
         }
@@ -132,5 +134,4 @@ public final class ProductSQLExceptionTranslator implements SQLExceptionTranslat
             return ex.getMessage();
         }
     }
-
 }

@@ -1,6 +1,41 @@
-package com.titan.productservice.service;
+// ------------------------------------------------------------------------------
+// MIT License
+//
+// Copyright (c) 2026 Rishabh Saraswat
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// ------------------------------------------------------------------------------
+
+package com.titan.productservice.domain.service;
 
 import com.titan.productservice.data.entity.CategoryEntity;
+import com.titan.productservice.data.entity.ProductCategoryEntity;
+import com.titan.productservice.data.entity.ProductEntity;
+import com.titan.productservice.data.entity.ProductMediaEntity;
+import com.titan.productservice.data.entity.ProductVariantEntity;
+import com.titan.productservice.data.repository.BrandRepository;
+import com.titan.productservice.data.repository.CategoryRepository;
+import com.titan.productservice.data.repository.ProductCategoryRepository;
+import com.titan.productservice.data.repository.ProductMediaRepository;
+import com.titan.productservice.data.repository.ProductRepository;
+import com.titan.productservice.data.repository.ProductVariantRepository;
 import com.titan.productservice.presentation.dto.BrandResponse;
 import com.titan.productservice.presentation.dto.CategoryResponse;
 import com.titan.productservice.presentation.dto.PageResponse;
@@ -20,16 +55,6 @@ import com.titan.productservice.presentation.dto.PublicMediaResponse;
 import com.titan.productservice.presentation.dto.PublicProductListQuery;
 import com.titan.productservice.presentation.dto.PublicProductResponse;
 import com.titan.productservice.presentation.dto.PublicVariantResponse;
-import com.titan.productservice.data.entity.ProductCategoryEntity;
-import com.titan.productservice.data.entity.ProductEntity;
-import com.titan.productservice.data.entity.ProductMediaEntity;
-import com.titan.productservice.data.entity.ProductVariantEntity;
-import com.titan.productservice.data.repository.BrandRepository;
-import com.titan.productservice.data.repository.CategoryRepository;
-import com.titan.productservice.data.repository.ProductCategoryRepository;
-import com.titan.productservice.data.repository.ProductMediaRepository;
-import com.titan.productservice.data.repository.ProductRepository;
-import com.titan.productservice.data.repository.ProductVariantRepository;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -639,8 +664,7 @@ public class ProductService {
                         .stream()
                         .collect(
                                 java.util.stream.Collectors.toMap(
-                                        CategoryEntity::getId,
-                                        value -> value));
+                                        CategoryEntity::getId, value -> value));
         return relations.stream()
                 .filter(relation -> categoryById.containsKey(relation.getCategoryId()))
                 .map(relation -> CategoryResponse.from(categoryById.get(relation.getCategoryId())))

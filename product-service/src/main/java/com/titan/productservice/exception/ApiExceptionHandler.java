@@ -1,8 +1,8 @@
 package com.titan.productservice.exception;
 
+import com.titan.productservice.domain.service.CategoryService.ConflictException;
+import com.titan.productservice.domain.service.ProductService.ResourceNotFoundException;
 import com.titan.productservice.presentation.dto.ErrorResponse;
-import com.titan.productservice.service.CategoryService.ConflictException;
-import com.titan.productservice.service.ProductService.ResourceNotFoundException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;

@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,16 +21,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.presentation.controller;
 
+import com.titan.productservice.domain.service.BrandService;
 import com.titan.productservice.presentation.dto.BrandCreateRequest;
 import com.titan.productservice.presentation.dto.BrandListQuery;
 import com.titan.productservice.presentation.dto.BrandResponse;
 import com.titan.productservice.presentation.dto.BrandUpdateRequest;
 import com.titan.productservice.presentation.dto.PageResponse;
-import com.titan.productservice.service.BrandService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

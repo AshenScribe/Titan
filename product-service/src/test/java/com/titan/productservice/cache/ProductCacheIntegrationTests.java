@@ -7,11 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.titan.productservice.TestcontainersConfiguration;
 import com.titan.productservice.config.ProductCacheProperties;
-import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
 import com.titan.productservice.data.entity.ProductChangedEvent;
 import com.titan.productservice.data.entity.ProductEntity;
 import com.titan.productservice.data.entity.ProductSnapshot;
-import com.titan.productservice.service.ProductCacheService;
+import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
+import com.titan.productservice.domain.service.ProductCacheService;
 import com.titan.productservice.util.ProductCacheKey;
 import java.time.OffsetDateTime;
 import java.util.HashMap;

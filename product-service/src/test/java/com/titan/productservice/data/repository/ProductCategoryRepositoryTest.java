@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.data.repository;
 
@@ -35,6 +35,10 @@ import com.titan.productservice.data.exception.ProductConcurrentModificationExce
 import com.titan.productservice.data.exception.ProductForeignKeyViolationException;
 import com.titan.productservice.data.exception.ProductSQLExceptionTranslator;
 import com.titan.productservice.data.exception.ProductUniqueViolationException;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -49,24 +53,22 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Stream;
-
 @JdbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({TestcontainersConfiguration.class, CategoryRepository.class, ProductRepository.class, ProductCategoryRepository.class, ProductDataSourceConfig.class, ProductSQLExceptionTranslator.class})
+@Import({
+    TestcontainersConfiguration.class,
+    CategoryRepository.class,
+    ProductRepository.class,
+    ProductCategoryRepository.class,
+    ProductDataSourceConfig.class,
+    ProductSQLExceptionTranslator.class
+})
 class ProductCategoryRepositoryTest {
 
-    @Autowired
-    private ProductCategoryRepository productCategories;
-    @Autowired
-    private CategoryRepository categories;
-    @Autowired
-    private ProductRepository products;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @Autowired private ProductCategoryRepository productCategories;
+    @Autowired private CategoryRepository categories;
+    @Autowired private ProductRepository products;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
@@ -85,7 +87,8 @@ class ProductCategoryRepositoryTest {
         CategoryEntity first = category("first", null);
         categories.insert(first);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
 
         List<ProductCategoryEntity> byProduct = productCategories.findByProductId(product.getId());
         Assertions.assertThat(byProduct).hasSize(1);
@@ -106,11 +109,16 @@ class ProductCategoryRepositoryTest {
         categories.insert(lower);
         categories.insert(higher);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), lower.getId(), false, null), 0);
-        productCategories.insert(new ProductCategoryEntity(product.getId(), higher.getId(), false, null), 1);
-        productCategories.update(new ProductCategoryEntity(product.getId(), higher.getId(), true, null), 2);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), lower.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), higher.getId(), false, null), 1);
+        productCategories.update(
+                new ProductCategoryEntity(product.getId(), higher.getId(), true, null), 2);
 
-        Assertions.assertThat(productCategories.findByProductId(product.getId())).extracting(ProductCategoryEntity::getCategoryId).containsExactly(higher.getId(), lower.getId());
+        Assertions.assertThat(productCategories.findByProductId(product.getId()))
+                .extracting(ProductCategoryEntity::getCategoryId)
+                .containsExactly(higher.getId(), lower.getId());
     }
 
     @Test
@@ -130,11 +138,19 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("mutate", null);
         categories.insert(value);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), true, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), true, null), 0);
 
-        Assertions.assertThat(productCategories.update(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 1)).isEqualTo(1);
+        Assertions.assertThat(
+                        productCategories.update(
+                                new ProductCategoryEntity(
+                                        product.getId(), value.getId(), false, null),
+                                1))
+                .isEqualTo(1);
 
-        Assertions.assertThat(productCategories.findByProductId(product.getId()).getFirst().isPrimary()).isFalse();
+        Assertions.assertThat(
+                        productCategories.findByProductId(product.getId()).getFirst().isPrimary())
+                .isFalse();
     }
 
     @Test
@@ -144,7 +160,13 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("missing-rel", null);
         categories.insert(value);
 
-        Assertions.assertThatThrownBy(() -> productCategories.update(new ProductCategoryEntity(product.getId(), value.getId(), true, null), 0)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.update(
+                                        new ProductCategoryEntity(
+                                                product.getId(), value.getId(), true, null),
+                                        0))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     @Test
@@ -154,12 +176,16 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("delete-rel", null);
         categories.insert(value);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
 
-        Assertions.assertThat(productCategories.delete(product.getId(), value.getId(), 1)).isEqualTo(1);
+        Assertions.assertThat(productCategories.delete(product.getId(), value.getId(), 1))
+                .isEqualTo(1);
         Assertions.assertThat(productCategories.findByProductId(product.getId())).isEmpty();
 
-        Assertions.assertThatThrownBy(() -> productCategories.delete(product.getId(), value.getId(), 2)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () -> productCategories.delete(product.getId(), value.getId(), 2))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     @Test
@@ -171,16 +197,25 @@ class ProductCategoryRepositoryTest {
         categories.insert(first);
         categories.insert(second);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
-        productCategories.insert(new ProductCategoryEntity(product.getId(), second.getId(), false, null), 1);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), second.getId(), false, null), 1);
 
-        Assertions.assertThat(productCategories.setPrimary(product.getId(), second.getId(), 2)).isEqualTo(1);
+        Assertions.assertThat(productCategories.setPrimary(product.getId(), second.getId(), 2))
+                .isEqualTo(1);
 
         List<ProductCategoryEntity> relations = productCategories.findByProductId(product.getId());
         Assertions.assertThat(relations).hasSize(2);
         Assertions.assertThat(relations.getFirst().getCategoryId()).isEqualTo(second.getId());
         Assertions.assertThat(relations.getFirst().isPrimary()).isTrue();
-        Assertions.assertThat(relations.stream().filter(r -> r.getCategoryId().equals(first.getId())).findFirst().orElseThrow().isPrimary()).isFalse();
+        Assertions.assertThat(
+                        relations.stream()
+                                .filter(r -> r.getCategoryId().equals(first.getId()))
+                                .findFirst()
+                                .orElseThrow()
+                                .isPrimary())
+                .isFalse();
     }
 
     @Test
@@ -190,7 +225,9 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("set-missing", null);
         categories.insert(value);
 
-        Assertions.assertThatThrownBy(() -> productCategories.setPrimary(product.getId(), value.getId(), 0)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () -> productCategories.setPrimary(product.getId(), value.getId(), 0))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     @Test
@@ -202,8 +239,10 @@ class ProductCategoryRepositoryTest {
         categories.insert(first);
         categories.insert(second);
 
-        productCategories.insertReplacingPrimary(new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
-        productCategories.insertReplacingPrimary(new ProductCategoryEntity(product.getId(), second.getId(), true, null), 1);
+        productCategories.insertReplacingPrimary(
+                new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
+        productCategories.insertReplacingPrimary(
+                new ProductCategoryEntity(product.getId(), second.getId(), true, null), 1);
 
         List<ProductCategoryEntity> relations = productCategories.findByProductId(product.getId());
         Assertions.assertThat(relations).hasSize(2);
@@ -225,9 +264,16 @@ class ProductCategoryRepositoryTest {
         productCategories.insert(
                 new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
 
-        productCategories.replace(product.getId(), List.of(new ProductCategoryEntity(product.getId(), second.getId(), true, null), new ProductCategoryEntity(product.getId(), third.getId(), false, null)), 1);
+        productCategories.replace(
+                product.getId(),
+                List.of(
+                        new ProductCategoryEntity(product.getId(), second.getId(), true, null),
+                        new ProductCategoryEntity(product.getId(), third.getId(), false, null)),
+                1);
 
-        Assertions.assertThat(productCategories.findByProductId(product.getId())).extracting(ProductCategoryEntity::getCategoryId).containsExactlyInAnyOrder(second.getId(), third.getId());
+        Assertions.assertThat(productCategories.findByProductId(product.getId()))
+                .extracting(ProductCategoryEntity::getCategoryId)
+                .containsExactlyInAnyOrder(second.getId(), third.getId());
     }
 
     @Test
@@ -237,7 +283,8 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("replace-empty", null);
         categories.insert(value);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
 
         productCategories.replace(product.getId(), List.of(), 1);
 
@@ -256,7 +303,14 @@ class ProductCategoryRepositoryTest {
         Assertions.assertThat(productCategories.insertBatch(null)).isEmpty();
         Assertions.assertThat(productCategories.insertBatch(List.of())).isEmpty();
 
-        Assertions.assertThat(productCategories.insertBatch(List.of(new ProductCategoryEntity(product.getId(), first.getId(), true, null), new ProductCategoryEntity(product.getId(), second.getId(), false, null)))).hasSize(2);
+        Assertions.assertThat(
+                        productCategories.insertBatch(
+                                List.of(
+                                        new ProductCategoryEntity(
+                                                product.getId(), first.getId(), true, null),
+                                        new ProductCategoryEntity(
+                                                product.getId(), second.getId(), false, null))))
+                .hasSize(2);
 
         Assertions.assertThat(productCategories.findByProductId(product.getId())).hasSize(2);
     }
@@ -270,7 +324,15 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("batch-multi", null);
         categories.insert(value);
 
-        Assertions.assertThatThrownBy(() -> productCategories.insertBatch(List.of(new ProductCategoryEntity(p1.getId(), value.getId(), false, null), new ProductCategoryEntity(p2.getId(), value.getId(), false, null)))).isInstanceOf(IllegalArgumentException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.insertBatch(
+                                        List.of(
+                                                new ProductCategoryEntity(
+                                                        p1.getId(), value.getId(), false, null),
+                                                new ProductCategoryEntity(
+                                                        p2.getId(), value.getId(), false, null))))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -280,7 +342,13 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("stale-insert", null);
         categories.insert(value);
 
-        Assertions.assertThatThrownBy(() -> productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 99)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.insert(
+                                        new ProductCategoryEntity(
+                                                product.getId(), value.getId(), false, null),
+                                        99))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     @Test
@@ -290,9 +358,16 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("stale-update", null);
         categories.insert(value);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
 
-        Assertions.assertThatThrownBy(() -> productCategories.update(new ProductCategoryEntity(product.getId(), value.getId(), true, null), 99)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.update(
+                                        new ProductCategoryEntity(
+                                                product.getId(), value.getId(), true, null),
+                                        99))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     @Test
@@ -302,9 +377,12 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("stale-delete", null);
         categories.insert(value);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
 
-        Assertions.assertThatThrownBy(() -> productCategories.delete(product.getId(), value.getId(), 99)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () -> productCategories.delete(product.getId(), value.getId(), 99))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     @ParameterizedTest(name = "staleVersion={0}")
@@ -315,9 +393,16 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("stale-" + staleVersion, null);
         categories.insert(value);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
 
-        Assertions.assertThatThrownBy(() -> productCategories.update(new ProductCategoryEntity(product.getId(), value.getId(), true, null), staleVersion)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.update(
+                                        new ProductCategoryEntity(
+                                                product.getId(), value.getId(), true, null),
+                                        staleVersion))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     static Stream<Arguments> staleVersions() {
@@ -334,9 +419,16 @@ class ProductCategoryRepositoryTest {
         categories.insert(first);
         categories.insert(second);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), first.getId(), true, null), 0);
 
-        Assertions.assertThatThrownBy(() -> productCategories.insert(new ProductCategoryEntity(product.getId(), second.getId(), true, null), 1)).isInstanceOf(DuplicatePrimaryCategoryException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.insert(
+                                        new ProductCategoryEntity(
+                                                product.getId(), second.getId(), true, null),
+                                        1))
+                .isInstanceOf(DuplicatePrimaryCategoryException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -347,9 +439,16 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("dup-rel", null);
         categories.insert(value);
 
-        productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
+        productCategories.insert(
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null), 0);
 
-        Assertions.assertThatThrownBy(() -> productCategories.insert(new ProductCategoryEntity(product.getId(), value.getId(), false, null), 1)).isInstanceOf(ProductUniqueViolationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.insert(
+                                        new ProductCategoryEntity(
+                                                product.getId(), value.getId(), false, null),
+                                        1))
+                .isInstanceOf(ProductUniqueViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -358,7 +457,13 @@ class ProductCategoryRepositoryTest {
         ProductEntity product = product("unknown-category");
         products.insert(product);
 
-        Assertions.assertThatThrownBy(() -> productCategories.insert(new ProductCategoryEntity(product.getId(), UUID.randomUUID(), false, null), 0)).isInstanceOf(ProductForeignKeyViolationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.insert(
+                                        new ProductCategoryEntity(
+                                                product.getId(), UUID.randomUUID(), false, null),
+                                        0))
+                .isInstanceOf(ProductForeignKeyViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -367,7 +472,13 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("unknown-product", null);
         categories.insert(value);
 
-        Assertions.assertThatThrownBy(() -> productCategories.insert(new ProductCategoryEntity(UUID.randomUUID(), value.getId(), false, null), 0)).isInstanceOf(ProductConcurrentModificationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                productCategories.insert(
+                                        new ProductCategoryEntity(
+                                                UUID.randomUUID(), value.getId(), false, null),
+                                        0))
+                .isInstanceOf(ProductConcurrentModificationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -378,18 +489,43 @@ class ProductCategoryRepositoryTest {
         CategoryEntity value = category("batch-fail", null);
         categories.insert(value);
 
-        ProductCategoryEntity relation = new ProductCategoryEntity(product.getId(), value.getId(), false, null);
+        ProductCategoryEntity relation =
+                new ProductCategoryEntity(product.getId(), value.getId(), false, null);
 
-        Assertions.assertThatThrownBy(() -> productCategories.insertBatch(List.of(relation, relation))).isInstanceOf(ProductUniqueViolationException.class);
+        Assertions.assertThatThrownBy(
+                        () -> productCategories.insertBatch(List.of(relation, relation)))
+                .isInstanceOf(ProductUniqueViolationException.class);
 
         Assertions.assertThat(productCategories.findByProductId(product.getId())).isEmpty();
     }
 
     private CategoryEntity category(String slug, UUID parentId) {
-        return new CategoryEntity(UUID.randomUUID(), parentId, "Category " + slug, slug, null, Map.of("nested", Map.of("enabled", true)), 0, true, null, null);
+        return new CategoryEntity(
+                UUID.randomUUID(),
+                parentId,
+                "Category " + slug,
+                slug,
+                null,
+                Map.of("nested", Map.of("enabled", true)),
+                0,
+                true,
+                null,
+                null);
     }
 
     private ProductEntity product(String slug) {
-        return new ProductEntity(UUID.randomUUID(), null, "Product " + slug, slug, null, "DRAFT", Map.of("nested", Map.of("value", 1)), 0, null, null, null, null);
+        return new ProductEntity(
+                UUID.randomUUID(),
+                null,
+                "Product " + slug,
+                slug,
+                null,
+                "DRAFT",
+                Map.of("nested", Map.of("value", 1)),
+                0,
+                null,
+                null,
+                null,
+                null);
     }
 }

@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,10 +21,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.presentation.controller;
 
+import com.titan.productservice.domain.service.CategoryService;
 import com.titan.productservice.presentation.dto.CategoryCreateRequest;
 import com.titan.productservice.presentation.dto.CategoryListQuery;
 import com.titan.productservice.presentation.dto.CategoryParentRequest;
@@ -32,7 +33,6 @@ import com.titan.productservice.presentation.dto.CategoryResponse;
 import com.titan.productservice.presentation.dto.CategoryTreeNode;
 import com.titan.productservice.presentation.dto.CategoryUpdateRequest;
 import com.titan.productservice.presentation.dto.PageResponse;
-import com.titan.productservice.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;

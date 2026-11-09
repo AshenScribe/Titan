@@ -53,7 +53,9 @@ import org.springframework.test.context.jdbc.Sql;
             "titan.cache.negative-ttl=10m"
         })
 @Import(TestcontainersConfiguration.class)
-@Sql(scripts = "/db/migration/V1__create_orders.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@Sql(
+        scripts = "/db/migration/V1__create_orders.sql",
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 class OrderCacheServiceTest {
 
     @Autowired private OrderCacheService orderCacheService;

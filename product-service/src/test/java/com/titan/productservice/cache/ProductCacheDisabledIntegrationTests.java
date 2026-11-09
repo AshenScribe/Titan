@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.titan.productservice.TestcontainersConfiguration;
 import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
-import com.titan.productservice.service.ProductCacheService;
+import com.titan.productservice.domain.service.ProductCacheService;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

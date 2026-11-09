@@ -36,6 +36,11 @@ import com.titan.productservice.data.exception.ProductForeignKeyViolationExcepti
 import com.titan.productservice.data.exception.ProductSQLExceptionTranslator;
 import com.titan.productservice.data.exception.ProductStringTruncationException;
 import com.titan.productservice.presentation.dto.BrandListQuery;
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -50,23 +55,20 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Stream;
-
 @JdbcTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({TestcontainersConfiguration.class, BrandRepository.class, ProductRepository.class, ProductDataSourceConfig.class, ProductSQLExceptionTranslator.class})
+@Import({
+    TestcontainersConfiguration.class,
+    BrandRepository.class,
+    ProductRepository.class,
+    ProductDataSourceConfig.class,
+    ProductSQLExceptionTranslator.class
+})
 class BrandRepositoryTest {
 
-    @Autowired
-    private BrandRepository brands;
-    @Autowired
-    private ProductRepository products;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    @Autowired private BrandRepository brands;
+    @Autowired private ProductRepository products;
+    @Autowired private JdbcTemplate jdbcTemplate;
 
     @AfterEach
     void cleanUp() {
@@ -82,11 +84,20 @@ class BrandRepositoryTest {
         BrandEntity first = brand("first");
         brands.insert(first);
 
-        Assertions.assertThat(brands.findById(first.getId())).get().extracting(BrandEntity::getId).isEqualTo(first.getId());
+        Assertions.assertThat(brands.findById(first.getId()))
+                .get()
+                .extracting(BrandEntity::getId)
+                .isEqualTo(first.getId());
 
-        Assertions.assertThat(brands.findBySlug("FIRST")).get().extracting(BrandEntity::getId).isEqualTo(first.getId());
+        Assertions.assertThat(brands.findBySlug("FIRST"))
+                .get()
+                .extracting(BrandEntity::getId)
+                .isEqualTo(first.getId());
 
-        Assertions.assertThat(brands.findBySlug("fIrSt")).get().extracting(BrandEntity::getId).isEqualTo(first.getId());
+        Assertions.assertThat(brands.findBySlug("fIrSt"))
+                .get()
+                .extracting(BrandEntity::getId)
+                .isEqualTo(first.getId());
     }
 
     @Test
@@ -148,7 +159,8 @@ class BrandRepositoryTest {
 
         List<BrandEntity> page = brands.findActive(2, 0);
         Assertions.assertThat(page).hasSize(2);
-        Assertions.assertThat(page.get(0).getId().toString()).isLessThan(page.get(1).getId().toString());
+        Assertions.assertThat(page.get(0).getId().toString())
+                .isLessThan(page.get(1).getId().toString());
 
         Assertions.assertThat(brands.findActive(2, 2)).hasSize(1);
         Assertions.assertThat(brands.findActive(2, 10)).isEmpty();
@@ -162,7 +174,9 @@ class BrandRepositoryTest {
         brands.insert(active);
         brands.insert(inactive);
 
-        Assertions.assertThat(brands.findActive(10, 0)).extracting(BrandEntity::getId).containsExactly(active.getId());
+        Assertions.assertThat(brands.findActive(10, 0))
+                .extracting(BrandEntity::getId)
+                .containsExactly(active.getId());
     }
 
     @Test
@@ -215,7 +229,8 @@ class BrandRepositoryTest {
     void jsonRoundTripPreservesNestedStructuresAndNullDescription() {
         BrandEntity value = brand("json");
         value.setDescription(null);
-        value.setMetadata(Map.of("array", List.of(1, 2, 3), "nested", Map.of("ok", true, "n", 1.5)));
+        value.setMetadata(
+                Map.of("array", List.of(1, 2, 3), "nested", Map.of("ok", true, "n", 1.5)));
         brands.insert(value);
 
         BrandEntity reloaded = brands.findById(value.getId()).orElseThrow();
@@ -235,11 +250,16 @@ class BrandRepositoryTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidPaginationBounds")
     void findActiveRejectsInvalidBounds(int limit, int offset) {
-        Assertions.assertThatThrownBy(() -> brands.findActive(limit, offset)).isInstanceOf(IllegalArgumentException.class);
+        Assertions.assertThatThrownBy(() -> brands.findActive(limit, offset))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     static Stream<Arguments> invalidPaginationBounds() {
-        return Stream.of(Arguments.of(0, 0), Arguments.of(-1, 0), Arguments.of(10, -1), Arguments.of(10, -100));
+        return Stream.of(
+                Arguments.of(0, 0),
+                Arguments.of(-1, 0),
+                Arguments.of(10, -1),
+                Arguments.of(10, -100));
     }
 
     @ParameterizedTest(name = "page={0} size={1}")
@@ -249,11 +269,16 @@ class BrandRepositoryTest {
         query.setPage(page);
         query.setSize(size);
 
-        Assertions.assertThatThrownBy(() -> brands.findPage(query)).isInstanceOf(IllegalArgumentException.class);
+        Assertions.assertThatThrownBy(() -> brands.findPage(query))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     static Stream<Arguments> invalidPageBounds() {
-        return Stream.of(Arguments.of(-1, 10), Arguments.of(0, 0), Arguments.of(0, 101), Arguments.of(0, -5));
+        return Stream.of(
+                Arguments.of(-1, 10),
+                Arguments.of(0, 0),
+                Arguments.of(0, 101),
+                Arguments.of(0, -5));
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -261,7 +286,8 @@ class BrandRepositoryTest {
     void duplicateSlugIsRejectedCaseInsensitively() {
         brands.insert(brand("same"));
 
-        Assertions.assertThatThrownBy(() -> brands.insert(brand("SAME"))).isInstanceOf(DuplicateBrandSlugException.class);
+        Assertions.assertThatThrownBy(() -> brands.insert(brand("SAME")))
+                .isInstanceOf(DuplicateBrandSlugException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -270,7 +296,8 @@ class BrandRepositoryTest {
         BrandEntity blank = brand("blank");
         blank.setName(" ");
 
-        Assertions.assertThatThrownBy(() -> brands.insert(blank)).isInstanceOf(ProductCheckConstraintViolationException.class);
+        Assertions.assertThatThrownBy(() -> brands.insert(blank))
+                .isInstanceOf(ProductCheckConstraintViolationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -282,7 +309,8 @@ class BrandRepositoryTest {
         BrandEntity duplicate = brand("batch-dup-b");
         duplicate.setId(a.getId());
 
-        Assertions.assertThatThrownBy(() -> brands.insertBatch(List.of(a, duplicate))).isInstanceOf(ProductDataException.class);
+        Assertions.assertThatThrownBy(() -> brands.insertBatch(List.of(a, duplicate)))
+                .isInstanceOf(ProductDataException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -295,7 +323,8 @@ class BrandRepositoryTest {
         product.setBrandId(value.getId());
         products.insert(product);
 
-        Assertions.assertThatThrownBy(() -> brands.deleteById(value.getId())).isInstanceOf(ProductForeignKeyViolationException.class);
+        Assertions.assertThatThrownBy(() -> brands.deleteById(value.getId()))
+                .isInstanceOf(ProductForeignKeyViolationException.class);
 
         Assertions.assertThat(brands.findById(value.getId())).isPresent();
     }
@@ -304,7 +333,8 @@ class BrandRepositoryTest {
     void updateAdvancesUpdatedAtViaTrigger() {
         BrandEntity value = brand("trigger-test");
         brands.insert(value);
-        OffsetDateTime originalUpdatedAt = brands.findById(value.getId()).orElseThrow().getUpdatedAt();
+        OffsetDateTime originalUpdatedAt =
+                brands.findById(value.getId()).orElseThrow().getUpdatedAt();
 
         value.setName("Triggered");
         brands.update(value);
@@ -318,7 +348,8 @@ class BrandRepositoryTest {
     void batchFailureDoesNotCommitAnyRow() {
         BrandEntity a = brand("batch-a");
         BrandEntity duplicate = brand("batch-a"); // same slug
-        Assertions.assertThatThrownBy(() -> brands.insertBatch(List.of(a, duplicate))).isInstanceOf(ProductDataException.class);
+        Assertions.assertThatThrownBy(() -> brands.insertBatch(List.of(a, duplicate)))
+                .isInstanceOf(ProductDataException.class);
         Assertions.assertThat(brands.findById(a.getId())).isEmpty();
     }
 
@@ -329,7 +360,8 @@ class BrandRepositoryTest {
         BrandEntity other = brand("other");
         brands.insert(other);
         other.setSlug("TAKEN");
-        Assertions.assertThatThrownBy(() -> brands.update(other)).isInstanceOf(DuplicateBrandSlugException.class);
+        Assertions.assertThatThrownBy(() -> brands.update(other))
+                .isInstanceOf(DuplicateBrandSlugException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -338,7 +370,8 @@ class BrandRepositoryTest {
         BrandEntity value = brand("blank-update");
         brands.insert(value);
         value.setName(" ");
-        Assertions.assertThatThrownBy(() -> brands.update(value)).isInstanceOf(ProductCheckConstraintViolationException.class);
+        Assertions.assertThatThrownBy(() -> brands.update(value))
+                .isInstanceOf(ProductCheckConstraintViolationException.class);
     }
 
     @Test
@@ -359,7 +392,8 @@ class BrandRepositoryTest {
         BrandEntity value = brand("meta-null");
         value.setMetadata(meta);
         brands.insert(value);
-        Assertions.assertThat(brands.findById(value.getId()).orElseThrow().getMetadata()).containsEntry("k", null);
+        Assertions.assertThat(brands.findById(value.getId()).orElseThrow().getMetadata())
+                .containsEntry("k", null);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -367,27 +401,59 @@ class BrandRepositoryTest {
     void nameLongerThan150CharsIsRejected() {
         BrandEntity longName = brand("long-name");
         longName.setName("x".repeat(151));
-        Assertions.assertThatThrownBy(() -> brands.insert(longName)).isInstanceOf(ProductStringTruncationException.class);
+        Assertions.assertThatThrownBy(() -> brands.insert(longName))
+                .isInstanceOf(ProductStringTruncationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Test
     void slugLongerThan180CharsIsRejected() {
         BrandEntity longSlug = brand("x".repeat(181));
-        Assertions.assertThatThrownBy(() -> brands.insert(longSlug)).isInstanceOf(ProductStringTruncationException.class);
+        Assertions.assertThatThrownBy(() -> brands.insert(longSlug))
+                .isInstanceOf(ProductStringTruncationException.class);
     }
 
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     @Test
     void metadataMustBeJsonObject() {
-        Assertions.assertThatThrownBy(() -> jdbcTemplate.update("INSERT INTO brands(id, name, slug, metadata) VALUES (?, ?, ?, ?::jsonb)", UUID.randomUUID(), "B", "b", "[1,2,3]")).isInstanceOf(ProductCheckConstraintViolationException.class);
+        Assertions.assertThatThrownBy(
+                        () ->
+                                jdbcTemplate.update(
+                                        "INSERT INTO brands(id, name, slug, metadata) VALUES (?, ?, ?, ?::jsonb)",
+                                        UUID.randomUUID(),
+                                        "B",
+                                        "b",
+                                        "[1,2,3]"))
+                .isInstanceOf(ProductCheckConstraintViolationException.class);
     }
 
     private BrandEntity brand(String slug) {
-        return new BrandEntity(UUID.randomUUID(), "Brand " + slug, slug, null, null, null, Map.of("nested", Map.of("enabled", true)), true, null, null);
+        return new BrandEntity(
+                UUID.randomUUID(),
+                "Brand " + slug,
+                slug,
+                null,
+                null,
+                null,
+                Map.of("nested", Map.of("enabled", true)),
+                true,
+                null,
+                null);
     }
 
     private ProductEntity product(String slug) {
-        return new ProductEntity(UUID.randomUUID(), null, "Product " + slug, slug, null, "DRAFT", Map.of("nested", Map.of("value", 1)), 0, null, null, null, null);
+        return new ProductEntity(
+                UUID.randomUUID(),
+                null,
+                "Product " + slug,
+                slug,
+                null,
+                "DRAFT",
+                Map.of("nested", Map.of("value", 1)),
+                0,
+                null,
+                null,
+                null,
+                null);
     }
 }

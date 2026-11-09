@@ -1,17 +1,25 @@
 package com.titan.productservice.integration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import com.titan.productservice.TestcontainersConfiguration;
+import com.titan.productservice.config.ProductDataSourceConfig;
 import com.titan.productservice.data.entity.CategoryEntity;
 import com.titan.productservice.data.entity.ProductCategoryEntity;
-import com.titan.productservice.data.entity.ProductMediaEntity;
-import com.titan.productservice.data.repository.AbstractRepositoryIntegrationTest;
 import com.titan.productservice.data.entity.ProductEntity;
-
+import com.titan.productservice.data.entity.ProductMediaEntity;
+import com.titan.productservice.data.entity.ProductVariantEntity;
+import com.titan.productservice.data.exception.ProductConcurrentModificationException;
+import com.titan.productservice.data.exception.ProductDataException;
+import com.titan.productservice.data.exception.ProductSQLExceptionTranslator;
+import com.titan.productservice.data.repository.BrandRepository;
+import com.titan.productservice.data.repository.CategoryRepository;
+import com.titan.productservice.data.repository.ProductCategoryRepository;
+import com.titan.productservice.data.repository.ProductMediaRepository;
+import com.titan.productservice.data.repository.ProductRepository;
+import com.titan.productservice.data.repository.ProductVariantRepository;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
@@ -19,44 +27,92 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.boot.jdbc.test.autoconfigure.JdbcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTest {
+@JdbcTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
+@Import({
+    TestcontainersConfiguration.class,
+    BrandRepository.class,
+    CategoryRepository.class,
+    ProductRepository.class,
+    ProductCategoryRepository.class,
+    ProductMediaRepository.class,
+    ProductVariantRepository.class,
+    ProductDataSourceConfig.class,
+    ProductSQLExceptionTranslator.class
+})
+class ProductConcurrencyIntegrationTests {
+
+    @Autowired private ProductRepository products;
+    @Autowired private ProductVariantRepository variants;
+    @Autowired private ProductMediaRepository media;
+    @Autowired private ProductCategoryRepository productCategories;
+    @Autowired private CategoryRepository categories;
+    @Autowired private BrandRepository brands;
+    @Autowired private JdbcTemplate jdbc;
+
+    @AfterEach
+    void cleanUp() {
+        jdbc.update(
+                "UPDATE products SET status = 'DRAFT', published_at = NULL WHERE status = 'ACTIVE'");
+        jdbc.update("DELETE FROM product_variants");
+        jdbc.update("DELETE FROM product_categories");
+        jdbc.update("DELETE FROM product_media");
+        jdbc.update("DELETE FROM products");
+        jdbc.update("UPDATE categories SET parent_id = NULL");
+        jdbc.update("DELETE FROM categories");
+        jdbc.update("DELETE FROM brands");
+    }
+
     @Test
     void concurrentProductUpdatesHaveOneOptimisticWinner() throws Exception {
-        var product = product("concurrent-product");
+        ProductEntity product = product("concurrent-product");
         products.insert(product);
-        var barrier = new CyclicBarrier(2);
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
         List<ConcurrencyResult> results =
                 run(
                         () -> updateAfterBarrier(copy(product, "first"), barrier),
                         () -> updateAfterBarrier(copy(product, "second"), barrier));
+
         assertExactlyOneSuccessAndOneOptimisticConflict(results);
-        assertEquals(1, productVersion(product.getId()));
+        Assertions.assertThat(productVersion(product.getId())).isEqualTo(1);
     }
 
     @Test
     void concurrentVariantInsertionsUseParentExpectedVersion() throws Exception {
-        var product = product("concurrent-variants");
+        ProductEntity product = product("concurrent-variants");
         products.insert(product);
-        var barrier = new CyclicBarrier(2);
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
         List<ConcurrencyResult> results =
                 run(
                         () -> insertVariantAfterBarrier(product.getId(), "a", barrier, 0),
                         () -> insertVariantAfterBarrier(product.getId(), "b", barrier, 0));
+
         assertExactlyOneSuccessAndOneOptimisticConflict(results);
-        assertEquals(1, productVersion(product.getId()));
+        Assertions.assertThat(productVersion(product.getId())).isEqualTo(1);
     }
 
     @Test
     void concurrentDuplicateSkuAcrossDifferentProductsHasOneUniqueWinner() throws Exception {
-        var firstProduct = product("sku-product-a");
-        var secondProduct = product("sku-product-b");
+        ProductEntity firstProduct = product("sku-product-a");
+        ProductEntity secondProduct = product("sku-product-b");
         products.insert(firstProduct);
         products.insert(secondProduct);
-        var barrier = new CyclicBarrier(2);
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
         List<ConcurrencyResult> results =
                 run(
                         () ->
@@ -65,121 +121,136 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
                         () ->
                                 insertVariantAfterBarrier(
                                         secondProduct.getId(), "same-sku", barrier, 0));
-        assertEquals(1, results.stream().filter(Success.class::isInstance).count());
-        assertEquals(1, results.stream().filter(IntegrityConflict.class::isInstance).count());
-        assertTrue(results.stream().noneMatch(OptimisticConflict.class::isInstance));
-        assertTrue(results.stream().noneMatch(UnexpectedFailure.class::isInstance));
-        assertEquals(
-                1,
-                jdbc.queryForObject(
-                        "SELECT count(*) FROM product_variants WHERE LOWER(sku) = LOWER(?)",
-                        Integer.class,
-                        "same-sku"));
+
+        Assertions.assertThat(results.stream().filter(Success.class::isInstance).count())
+                .isEqualTo(1);
+        Assertions.assertThat(results.stream().filter(IntegrityConflict.class::isInstance).count())
+                .isEqualTo(1);
+        Assertions.assertThat(results.stream().noneMatch(OptimisticConflict.class::isInstance))
+                .isTrue();
+        Assertions.assertThat(results.stream().noneMatch(UnexpectedFailure.class::isInstance))
+                .isTrue();
+        Assertions.assertThat(
+                        jdbc.queryForObject(
+                                "SELECT count(*) FROM product_variants WHERE LOWER(sku) = LOWER(?)",
+                                Integer.class,
+                                "same-sku"))
+                .isEqualTo(1);
     }
 
     @Test
     void concurrentPrimaryMediaAssignmentsHaveOneAggregateWinner() throws Exception {
-        var product = product("primary-media-race");
+        ProductEntity product = product("primary-media-race");
         products.insert(product);
-        var first = media(product.getId(), "IMAGE", 0);
-        var second = media(product.getId(), "IMAGE", 1);
-        var barrier = new CyclicBarrier(2);
+        ProductMediaEntity first = media(product.getId(), "IMAGE", 0);
+        ProductMediaEntity second = media(product.getId(), "IMAGE", 1);
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
         List<ConcurrencyResult> results =
                 run(
-                        () -> insertMediaAfterBarrier(first, barrier, 0),
-                        () -> insertMediaAfterBarrier(second, barrier, 0));
+                        () -> insertPrimaryMediaAfterBarrier(first, barrier, 0),
+                        () -> insertPrimaryMediaAfterBarrier(second, barrier, 0));
+
         assertExactlyOneSuccessAndOneOptimisticConflict(results);
-        assertEquals(
-                1,
-                jdbc.queryForObject(
-                        "SELECT count(*) FROM product_media WHERE product_id = ? AND is_primary = TRUE",
-                        Integer.class,
-                        product.getId()));
+        Assertions.assertThat(
+                        jdbc.queryForObject(
+                                "SELECT count(*) FROM product_media WHERE product_id = ? AND is_primary = TRUE",
+                                Integer.class,
+                                product.getId()))
+                .isEqualTo(1);
     }
 
     @Test
     void concurrentPrimaryCategoryAssignmentsHaveOneAggregateWinner() throws Exception {
-        var product = product("primary-category-race");
+        ProductEntity product = product("primary-category-race");
         products.insert(product);
-        var first = category("race-category-a", null);
-        var second = category("race-category-b", null);
+        CategoryEntity first = category("race-category-a");
+        CategoryEntity second = category("race-category-b");
         categories.insert(first);
         categories.insert(second);
-        var barrier = new CyclicBarrier(2);
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
         List<ConcurrencyResult> results =
                 run(
                         () ->
-                                insertCategoryAfterBarrier(
+                                insertPrimaryCategoryAfterBarrier(
                                         product.getId(), first.getId(), barrier, 0),
                         () ->
-                                insertCategoryAfterBarrier(
+                                insertPrimaryCategoryAfterBarrier(
                                         product.getId(), second.getId(), barrier, 0));
+
         assertExactlyOneSuccessAndOneOptimisticConflict(results);
-        assertEquals(
-                1,
-                jdbc.queryForObject(
-                        "SELECT count(*) FROM product_categories WHERE product_id = ? AND is_primary = TRUE",
-                        Integer.class,
-                        product.getId()));
+        Assertions.assertThat(
+                        jdbc.queryForObject(
+                                "SELECT count(*) FROM product_categories WHERE product_id = ? AND is_primary = TRUE",
+                                Integer.class,
+                                product.getId()))
+                .isEqualTo(1);
     }
 
     @Test
     void concurrentCategoryMovesCannotCreateACycle() throws Exception {
-        var firstRoot = category("cycle-root-a", null);
-        var secondRoot = category("cycle-root-b", null);
+        CategoryEntity firstRoot = category("cycle-root-a");
+        CategoryEntity secondRoot = category("cycle-root-b");
         categories.insert(firstRoot);
         categories.insert(secondRoot);
-        var barrier = new CyclicBarrier(2);
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
         List<ConcurrencyResult> results =
                 run(
                         () -> moveCategoryAfterBarrier(firstRoot, secondRoot.getId(), barrier),
                         () -> moveCategoryAfterBarrier(secondRoot, firstRoot.getId(), barrier));
-        assertEquals(1, results.stream().filter(Success.class::isInstance).count());
-        assertEquals(1, results.stream().filter(IntegrityConflict.class::isInstance).count());
-        assertTrue(results.stream().noneMatch(UnexpectedFailure.class::isInstance));
+
+        Assertions.assertThat(results.stream().filter(Success.class::isInstance).count())
+                .isEqualTo(1);
+        Assertions.assertThat(results.stream().filter(IntegrityConflict.class::isInstance).count())
+                .isEqualTo(1);
+        Assertions.assertThat(results.stream().noneMatch(UnexpectedFailure.class::isInstance))
+                .isTrue();
         assertNoCategoryCycle();
     }
 
     @Test
     void concurrentDeactivationOfFinalActiveVariantsLeavesOneActive() throws Exception {
-        var product = product("final-variant-race");
+        ProductEntity product = product("final-variant-race");
         products.insert(product);
-        var first = variant(product.getId(), "final-a", BigDecimal.ONE);
-        var second = variant(product.getId(), "final-b", BigDecimal.valueOf(2));
+        ProductVariantEntity first = variant(product.getId(), "final-a", BigDecimal.ONE);
+        ProductVariantEntity second = variant(product.getId(), "final-b", BigDecimal.valueOf(2));
         variants.insert(first, 0);
         variants.insert(second, 1);
         product.setStatus("ACTIVE");
-        product.setPublishedAt(java.time.OffsetDateTime.now());
+        product.setPublishedAt(OffsetDateTime.now());
         product.setVersion(2);
         products.update(product);
         long expectedProductVersion = productVersion(product.getId());
-        var barrier = new CyclicBarrier(2);
+
+        CyclicBarrier barrier = new CyclicBarrier(2);
         List<ConcurrencyResult> results =
                 run(
                         () ->
                                 deactivateAfterBarrier(
-                                        new DeactivationAttempt(
-                                                first.getId(),
-                                                product.getId(),
-                                                0,
-                                                expectedProductVersion),
+                                        first.getId(),
+                                        product.getId(),
+                                        0,
+                                        expectedProductVersion,
                                         barrier),
                         () ->
                                 deactivateAfterBarrier(
-                                        new DeactivationAttempt(
-                                                second.getId(),
-                                                product.getId(),
-                                                0,
-                                                expectedProductVersion),
+                                        second.getId(),
+                                        product.getId(),
+                                        0,
+                                        expectedProductVersion,
                                         barrier));
+
         assertExactlyOneSuccessAndOneOptimisticConflict(results);
-        assertEquals(
-                1,
-                jdbc.queryForObject(
-                        "SELECT count(*) FROM product_variants WHERE product_id = ? AND status = 'ACTIVE'",
-                        Integer.class,
-                        product.getId()));
-        assertEquals("ACTIVE", products.findById(product.getId()).orElseThrow().getStatus());
+        Assertions.assertThat(
+                        jdbc.queryForObject(
+                                "SELECT count(*) FROM product_variants WHERE product_id = ? AND status = 'ACTIVE'",
+                                Integer.class,
+                                product.getId()))
+                .isEqualTo(1);
+        Assertions.assertThat(products.findById(product.getId()).orElseThrow().getStatus())
+                .isEqualTo("ACTIVE");
     }
 
     private List<ConcurrencyResult> run(
@@ -189,14 +260,14 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
             List<Future<ConcurrencyResult>> futures =
                     pool.invokeAll(List.of(first, second), 10, TimeUnit.SECONDS);
             List<ConcurrencyResult> results = futures.stream().map(this::resultOf).toList();
-            assertEquals(2, results.size());
+            Assertions.assertThat(results).hasSize(2);
             return results;
         }
     }
 
     private ConcurrencyResult resultOf(Future<ConcurrencyResult> future) {
         try {
-            assertFalse(future.isCancelled(), "concurrency task timed out");
+            Assertions.assertThat(future.isCancelled()).isFalse();
             return future.get(1, TimeUnit.SECONDS);
         } catch (Exception exception) {
             throw new AssertionError("Unexpected concurrency task failure", exception);
@@ -208,7 +279,7 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
         try {
             products.update(value);
             return new Success();
-        } catch (OptimisticLockingFailureException exception) {
+        } catch (ProductConcurrentModificationException exception) {
             return new OptimisticConflict(exception);
         } catch (RuntimeException exception) {
             return new UnexpectedFailure(exception);
@@ -221,57 +292,75 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
         try {
             variants.insert(variant(productId, sku, BigDecimal.ONE), expectedVersion);
             return new Success();
-        } catch (DataIntegrityViolationException exception) {
-            return new IntegrityConflict(exception);
-        } catch (OptimisticLockingFailureException exception) {
+        } catch (ProductConcurrentModificationException exception) {
             return new OptimisticConflict(exception);
+        } catch (ProductDataException exception) {
+            return new IntegrityConflict(exception);
         } catch (RuntimeException exception) {
             return new UnexpectedFailure(exception);
         }
     }
 
-    private ConcurrencyResult insertMediaAfterBarrier(
-            ProductMediaEntity value,
-            CyclicBarrier barrier,
-            long expectedVersion) {
+    private ConcurrencyResult insertPrimaryMediaAfterBarrier(
+            ProductMediaEntity value, CyclicBarrier barrier, long expectedVersion) {
         value.setPrimary(true);
         await(barrier);
         try {
-            media.insert(value, expectedVersion);
+            media.insertReplacingPrimary(value, expectedVersion);
             return new Success();
-        } catch (OptimisticLockingFailureException exception) {
+        } catch (ProductConcurrentModificationException exception) {
             return new OptimisticConflict(exception);
+        } catch (ProductDataException exception) {
+            return new IntegrityConflict(exception);
         } catch (RuntimeException exception) {
             return new UnexpectedFailure(exception);
         }
     }
 
-    private ConcurrencyResult insertCategoryAfterBarrier(
+    private ConcurrencyResult insertPrimaryCategoryAfterBarrier(
             UUID productId, UUID categoryId, CyclicBarrier barrier, long expectedVersion) {
         await(barrier);
         try {
-            productCategories.insert(
-                    new ProductCategoryEntity(
-                            productId, categoryId, true, null),
-                    expectedVersion);
+            productCategories.insertReplacingPrimary(
+                    new ProductCategoryEntity(productId, categoryId, true, null), expectedVersion);
             return new Success();
-        } catch (OptimisticLockingFailureException exception) {
+        } catch (ProductConcurrentModificationException exception) {
             return new OptimisticConflict(exception);
+        } catch (ProductDataException exception) {
+            return new IntegrityConflict(exception);
         } catch (RuntimeException exception) {
             return new UnexpectedFailure(exception);
         }
     }
 
     private ConcurrencyResult moveCategoryAfterBarrier(
-            CategoryEntity value,
-            UUID parentId,
-            CyclicBarrier barrier) {
+            CategoryEntity value, UUID parentId, CyclicBarrier barrier) {
         value.setParentId(parentId);
         await(barrier);
         try {
             categories.update(value);
             return new Success();
-        } catch (org.springframework.dao.DataAccessException exception) {
+        } catch (ProductDataException exception) {
+            return new IntegrityConflict(exception);
+        } catch (RuntimeException exception) {
+            return new UnexpectedFailure(exception);
+        }
+    }
+
+    private ConcurrencyResult deactivateAfterBarrier(
+            UUID variantId,
+            UUID productId,
+            long expectedVariantVersion,
+            long expectedProductVersion,
+            CyclicBarrier barrier) {
+        await(barrier);
+        try {
+            variants.deactivateById(
+                    variantId, productId, expectedVariantVersion, expectedProductVersion);
+            return new Success();
+        } catch (ProductConcurrentModificationException exception) {
+            return new OptimisticConflict(exception);
+        } catch (ProductDataException exception) {
             return new IntegrityConflict(exception);
         } catch (RuntimeException exception) {
             return new UnexpectedFailure(exception);
@@ -279,40 +368,23 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
     }
 
     private void assertNoCategoryCycle() {
-        assertEquals(
-                0,
-                jdbc.queryForObject(
-                        """
-        WITH RECURSIVE hierarchy AS (
-          SELECT id, parent_id, ARRAY[id] AS path, FALSE AS cycle
-          FROM categories
-          UNION ALL
-          SELECT hierarchy.id, parent.parent_id, hierarchy.path || parent.id,
-            parent.id = ANY(hierarchy.path)
-          FROM hierarchy
-          JOIN categories parent ON parent.id = hierarchy.parent_id
-          WHERE hierarchy.parent_id IS NOT NULL AND NOT hierarchy.cycle
-        )
-        SELECT count(*) FROM hierarchy WHERE cycle
-        """,
-                        Integer.class));
-    }
-
-    private ConcurrencyResult deactivateAfterBarrier(
-            DeactivationAttempt attempt, CyclicBarrier barrier) {
-        await(barrier);
-        try {
-            variants.deactivateById(
-                    attempt.variantId(),
-                    attempt.productId(),
-                    attempt.expectedVariantVersion(),
-                    attempt.expectedProductVersion());
-            return new Success();
-        } catch (OptimisticLockingFailureException exception) {
-            return new OptimisticConflict(exception);
-        } catch (RuntimeException exception) {
-            return new UnexpectedFailure(exception);
-        }
+        Assertions.assertThat(
+                        jdbc.queryForObject(
+                                """
+                                        WITH RECURSIVE hierarchy AS (
+                                          SELECT id, parent_id, ARRAY[id] AS path, FALSE AS cycle
+                                          FROM categories
+                                          UNION ALL
+                                          SELECT hierarchy.id, parent.parent_id, hierarchy.path || parent.id,
+                                            parent.id = ANY(hierarchy.path)
+                                          FROM hierarchy
+                                          JOIN categories parent ON parent.id = hierarchy.parent_id
+                                          WHERE hierarchy.parent_id IS NOT NULL AND NOT hierarchy.cycle
+                                        )
+                                        SELECT count(*) FROM hierarchy WHERE cycle
+                                        """,
+                                Integer.class))
+                .isZero();
     }
 
     private void await(CyclicBarrier barrier) {
@@ -324,9 +396,16 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
     }
 
     private void assertExactlyOneSuccessAndOneOptimisticConflict(List<ConcurrencyResult> results) {
-        assertEquals(1, results.stream().filter(Success.class::isInstance).count());
-        assertEquals(1, results.stream().filter(OptimisticConflict.class::isInstance).count());
-        assertTrue(results.stream().noneMatch(UnexpectedFailure.class::isInstance));
+        Assertions.assertThat(results.stream().filter(Success.class::isInstance).count())
+                .isEqualTo(1);
+        Assertions.assertThat(results.stream().filter(OptimisticConflict.class::isInstance).count())
+                .isEqualTo(1);
+        Assertions.assertThat(results.stream().noneMatch(UnexpectedFailure.class::isInstance))
+                .isTrue();
+    }
+
+    private long productVersion(UUID id) {
+        return jdbc.queryForObject("SELECT version FROM products WHERE id = ?", Long.class, id);
     }
 
     private ProductEntity copy(ProductEntity source, String name) {
@@ -345,6 +424,60 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
                 source.getUpdatedAt());
     }
 
+    private ProductEntity product(String slug) {
+        return new ProductEntity(
+                UUID.randomUUID(),
+                null,
+                "Product " + slug,
+                slug,
+                null,
+                "DRAFT",
+                Map.of("nested", Map.of("value", 1)),
+                0,
+                null,
+                null,
+                null,
+                null);
+    }
+
+    private ProductMediaEntity media(UUID productId, String type, int position) {
+        ProductMediaEntity value = new ProductMediaEntity();
+        value.setId(UUID.randomUUID());
+        value.setProductId(productId);
+        value.setMediaType(type);
+        value.setStorageKey("s3://bucket/" + UUID.randomUUID());
+        value.setAltText("alt");
+        value.setPosition(position);
+        value.setPrimary(false);
+        return value;
+    }
+
+    private ProductVariantEntity variant(UUID productId, String sku, BigDecimal price) {
+        ProductVariantEntity value = new ProductVariantEntity();
+        value.setId(UUID.randomUUID());
+        value.setProductId(productId);
+        value.setSku(sku);
+        value.setPrice(price);
+        value.setCurrency("INR");
+        value.setStatus("ACTIVE");
+        value.setAttributes(Map.of());
+        return value;
+    }
+
+    private CategoryEntity category(String slug) {
+        return new CategoryEntity(
+                UUID.randomUUID(),
+                null,
+                "Category " + slug,
+                slug,
+                null,
+                Map.of(),
+                0,
+                true,
+                null,
+                null);
+    }
+
     private sealed interface ConcurrencyResult
             permits Success, OptimisticConflict, IntegrityConflict, UnexpectedFailure {}
 
@@ -355,10 +488,4 @@ class ProductConcurrencyIntegrationTests extends AbstractRepositoryIntegrationTe
     private record IntegrityConflict(Throwable cause) implements ConcurrencyResult {}
 
     private record UnexpectedFailure(Throwable cause) implements ConcurrencyResult {}
-
-    private record DeactivationAttempt(
-            UUID variantId,
-            UUID productId,
-            long expectedVariantVersion,
-            long expectedProductVersion) {}
 }

@@ -63,7 +63,9 @@ import org.springframework.test.context.jdbc.Sql;
 
 @SpringBootTest
 @Import({TestcontainersConfiguration.class, OrderServiceIntegrationTest.StubConfig.class})
-@Sql(scripts = "/db/migration/V1__create_orders.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@Sql(
+        scripts = "/db/migration/V1__create_orders.sql",
+        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @Sql(scripts = "/cleanup.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class OrderServiceIntegrationTest {
 

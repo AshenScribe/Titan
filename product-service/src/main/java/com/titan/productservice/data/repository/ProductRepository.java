@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,7 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.data.repository;
 
@@ -32,14 +32,6 @@ import com.titan.productservice.data.entity.ProductChangedEvent;
 import com.titan.productservice.data.entity.ProductEntity;
 import com.titan.productservice.data.exception.ProductConcurrentModificationException;
 import com.titan.productservice.presentation.dto.PublicProductListQuery;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -50,6 +42,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class ProductRepository {
@@ -71,6 +69,7 @@ public class ProductRepository {
                     + COLUMNS
                     + " FROM products WHERE status = 'ACTIVE' AND deleted_at IS NULL "
                     + "ORDER BY created_at DESC, id LIMIT ? OFFSET ?";
+    private static final String SELECT_SLUG_SQL = "SELECT slug FROM products WHERE id = ?";
     private static final String INSERT_SQL =
             "INSERT INTO products(id, brand_id, name, slug, description, status, metadata, version, published_at, deleted_at) "
                     + "VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?)";
@@ -105,11 +104,9 @@ public class ProductRepository {
 
     public void insert(ProductEntity product) {
         jdbcTemplate.update(
-                connection -> {
-                    PreparedStatement statement = connection.prepareStatement(INSERT_SQL);
-                    statement.setObject(1, product.getId());
+                INSERT_SQL,
+                statement -> {
                     bindInsert(statement, product);
-                    return statement;
                 });
         eventPublisher.publishEvent(
                 new ProductChangedEvent(
@@ -118,24 +115,15 @@ public class ProductRepository {
 
     @Transactional
     public int update(ProductEntity product) {
-        String previousSlug =
-                jdbcTemplate
-                        .query(
-                                "SELECT slug FROM products WHERE id = ?",
-                                (resultSet, row) -> resultSet.getString(1),
-                                product.getId())
-                        .stream()
-                        .findFirst()
-                        .orElse(null);
+        String previousSlug = findSlug(product.getId());
         int updated =
                 jdbcTemplate.update(
-                        connection -> {
-                            PreparedStatement statement = connection.prepareStatement(UPDATE_SQL);
+                        UPDATE_SQL,
+                        statement -> {
                             bindUpdate(statement, product);
-                            return statement;
                         });
         if (updated == 0) {
-            throw new OptimisticLockingFailureException(
+            throw new ProductConcurrentModificationException(
                     "Product was changed, deleted, or does not exist: " + product.getId());
         }
         eventPublisher.publishEvent(
@@ -146,6 +134,54 @@ public class ProductRepository {
                         product.getVersion() + 1,
                         "UPDATED"));
         return updated;
+    }
+
+    @Transactional
+    public Optional<SoftDeletedProduct> softDeleteById(UUID id, long expectedVersion) {
+        String previousSlug = findSlug(id);
+        Optional<SoftDeletedProduct> result =
+                jdbcTemplate
+                        .query(
+                                SOFT_DELETE_SQL,
+                                (rs, row) ->
+                                        new SoftDeletedProduct(
+                                                rs.getObject("id", UUID.class),
+                                                rs.getLong("version"),
+                                                rs.getObject("deleted_at", OffsetDateTime.class)),
+                                id,
+                                expectedVersion)
+                        .stream()
+                        .findFirst();
+        result.ifPresent(
+                deleted ->
+                        eventPublisher.publishEvent(
+                                new ProductChangedEvent(
+                                        id,
+                                        previousSlug,
+                                        previousSlug,
+                                        deleted.version(),
+                                        "DELETED")));
+        return result;
+    }
+
+    @Transactional
+    public long incrementVersion(UUID productId, long expectedVersion) {
+        String previousSlug = findSlug(productId);
+        List<Long> versions =
+                jdbcTemplate.query(
+                        INCREMENT_VERSION_SQL,
+                        (rs, row) -> rs.getLong("version"),
+                        productId,
+                        expectedVersion);
+        if (versions.isEmpty()) {
+            throw new ProductConcurrentModificationException(
+                    "Product aggregate was changed, deleted, or does not exist: " + productId);
+        }
+        long version = versions.getFirst();
+        eventPublisher.publishEvent(
+                new ProductChangedEvent(
+                        productId, previousSlug, previousSlug, version, "AGGREGATE_CHANGED"));
+        return version;
     }
 
     public Optional<ProductEntity> findActiveById(UUID id) {
@@ -218,6 +254,26 @@ public class ProductRepository {
                         rowMapper,
                         pageParameters.toArray());
         return new ProductPage(products, total == null ? 0 : total);
+    }
+
+    public int[] insertBatch(List<ProductEntity> products) {
+        if (products == null || products.isEmpty()) {
+            return new int[0];
+        }
+        return jdbcTemplate.batchUpdate(
+                INSERT_SQL,
+                new BatchPreparedStatementSetter() {
+                    @Override
+                    public void setValues(PreparedStatement statement, int index)
+                            throws SQLException {
+                        bindInsert(statement, products.get(index));
+                    }
+
+                    @Override
+                    public int getBatchSize() {
+                        return products.size();
+                    }
+                });
     }
 
     private void appendPublicFilters(
@@ -385,94 +441,17 @@ public class ProductRepository {
 
     public record ProductPage(List<ProductEntity> products, int totalElements) {}
 
-    @Transactional
-    public Optional<SoftDeletedProduct> softDeleteById(UUID id, long expectedVersion) {
-        String previousSlug =
-                jdbcTemplate
-                        .query(
-                                "SELECT slug FROM products WHERE id = ?",
-                                (resultSet, row) -> resultSet.getString(1),
-                                id)
-                        .stream()
-                        .findFirst()
-                        .orElse(null);
-        Optional<SoftDeletedProduct> result =
-                jdbcTemplate
-                        .query(
-                                SOFT_DELETE_SQL,
-                                (rs, row) ->
-                                        new SoftDeletedProduct(
-                                                rs.getObject("id", UUID.class),
-                                                rs.getLong("version"),
-                                                rs.getObject("deleted_at", OffsetDateTime.class)),
-                                id,
-                                expectedVersion)
-                        .stream()
-                        .findFirst();
-        result.ifPresent(
-                deleted ->
-                        eventPublisher.publishEvent(
-                                new ProductChangedEvent(
-                                        id,
-                                        previousSlug,
-                                        previousSlug,
-                                        deleted.version(),
-                                        "DELETED")));
-        return result;
-    }
-
-    @Transactional
-    public long incrementVersion(UUID productId, long expectedVersion) {
-        String previousSlug =
-                jdbcTemplate
-                        .query(
-                                "SELECT slug FROM products WHERE id = ?",
-                                (resultSet, row) -> resultSet.getString(1),
-                                productId)
-                        .stream()
-                        .findFirst()
-                        .orElse(null);
-        List<Long> versions =
-                jdbcTemplate.query(
-                        INCREMENT_VERSION_SQL,
-                        (rs, row) -> rs.getLong("version"),
-                        productId,
-                        expectedVersion);
-        if (versions.isEmpty()) {
-            throw new ProductConcurrentModificationException(
-                    "Product aggregate was changed, deleted, or does not exist: " + productId);
-        }
-        long version = versions.getFirst();
-        eventPublisher.publishEvent(
-                new ProductChangedEvent(
-                        productId, previousSlug, previousSlug, version, "AGGREGATE_CHANGED"));
-        return version;
-    }
-
     public record SoftDeletedProduct(UUID id, long version, OffsetDateTime deletedAt) {}
 
-    public int[] insertBatch(List<ProductEntity> products) {
-        if (products == null || products.isEmpty()) {
-            return new int[0];
-        }
-        return jdbcTemplate.batchUpdate(
-                INSERT_SQL,
-                new BatchPreparedStatementSetter() {
-                    public void setValues(PreparedStatement statement, int index)
-                            throws SQLException {
-                        ProductEntity product = products.get(index);
-                        statement.setObject(1, product.getId());
-                        bindInsert(statement, product);
-                    }
-
-                    public int getBatchSize() {
-                        return products.size();
-                    }
-                });
+    private String findSlug(UUID productId) {
+        return jdbcTemplate.query(SELECT_SLUG_SQL, (rs, row) -> rs.getString(1), productId).stream()
+                .findFirst()
+                .orElse(null);
     }
 
     private void bindInsert(PreparedStatement statement, ProductEntity product)
             throws SQLException {
+        statement.setObject(1, product.getId());
         statement.setObject(2, product.getBrandId());
         statement.setString(3, product.getName());
         statement.setString(4, product.getSlug());

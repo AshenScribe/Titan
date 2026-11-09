@@ -1,4 +1,4 @@
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 // MIT License
 //
 // Copyright (c) 2026 Rishabh Saraswat
@@ -21,19 +21,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 package com.titan.productservice.data.repository;
 
 import com.titan.productservice.data.entity.ProductMediaEntity;
+import com.titan.productservice.data.exception.ProductConcurrentModificationException;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -57,6 +58,14 @@ public class ProductMediaRepository {
                     + "WHERE id = ? AND product_id = ?";
     private static final String DELETE_SQL =
             "DELETE FROM product_media WHERE id = ? AND product_id = ?";
+    private static final String CLEAR_PRIMARY_SQL =
+            "UPDATE product_media SET is_primary = FALSE WHERE product_id = ?";
+    private static final String SET_PRIMARY_SQL =
+            "UPDATE product_media SET is_primary = TRUE WHERE product_id = ? AND id = ?";
+    private static final String REORDER_SQL =
+            "UPDATE product_media SET position = ? WHERE product_id = ? AND id = ?";
+    private static final String SELECT_VERSION_SQL =
+            "SELECT version FROM products WHERE id = ? AND deleted_at IS NULL FOR UPDATE";
 
     private final JdbcTemplate jdbcTemplate;
     private final ProductRepository productRepository;
@@ -76,14 +85,11 @@ public class ProductMediaRepository {
     public void insert(ProductMediaEntity media, long expectedProductVersion) {
         productRepository.incrementVersion(media.getProductId(), expectedProductVersion);
         jdbcTemplate.update(
-                INSERT_SQL,
-                media.getId(),
-                media.getProductId(),
-                media.getMediaType(),
-                media.getStorageKey(),
-                media.getAltText(),
-                media.getPosition(),
-                media.isPrimary());
+                connection -> {
+                    PreparedStatement statement = connection.prepareStatement(INSERT_SQL);
+                    bindInsert(statement, media);
+                    return statement;
+                });
     }
 
     @Transactional
@@ -96,16 +102,13 @@ public class ProductMediaRepository {
         productRepository.incrementVersion(media.getProductId(), expectedProductVersion);
         int updated =
                 jdbcTemplate.update(
-                        UPDATE_SQL,
-                        media.getMediaType(),
-                        media.getStorageKey(),
-                        media.getAltText(),
-                        media.getPosition(),
-                        media.isPrimary(),
-                        media.getId(),
-                        media.getProductId());
+                        connection -> {
+                            PreparedStatement statement = connection.prepareStatement(UPDATE_SQL);
+                            bindUpdate(statement, media);
+                            return statement;
+                        });
         if (updated == 0) {
-            throw new OptimisticLockingFailureException(
+            throw new ProductConcurrentModificationException(
                     "Media was changed or does not exist: " + media.getId());
         }
         return updated;
@@ -115,41 +118,31 @@ public class ProductMediaRepository {
     public void insertReplacingPrimary(ProductMediaEntity media, long expectedProductVersion) {
         productRepository.incrementVersion(media.getProductId(), expectedProductVersion);
         if (media.isPrimary()) {
-            jdbcTemplate.update(
-                    "UPDATE product_media SET is_primary = FALSE WHERE product_id = ?",
-                    media.getProductId());
+            jdbcTemplate.update(CLEAR_PRIMARY_SQL, media.getProductId());
         }
         jdbcTemplate.update(
-                INSERT_SQL,
-                media.getId(),
-                media.getProductId(),
-                media.getMediaType(),
-                media.getStorageKey(),
-                media.getAltText(),
-                media.getPosition(),
-                media.isPrimary());
+                connection -> {
+                    PreparedStatement statement = connection.prepareStatement(INSERT_SQL);
+                    bindInsert(statement, media);
+                    return statement;
+                });
     }
 
     @Transactional
     public int updateReplacingPrimary(ProductMediaEntity media, long expectedProductVersion) {
         productRepository.incrementVersion(media.getProductId(), expectedProductVersion);
         if (media.isPrimary()) {
-            jdbcTemplate.update(
-                    "UPDATE product_media SET is_primary = FALSE WHERE product_id = ?",
-                    media.getProductId());
+            jdbcTemplate.update(CLEAR_PRIMARY_SQL, media.getProductId());
         }
         int updated =
                 jdbcTemplate.update(
-                        UPDATE_SQL,
-                        media.getMediaType(),
-                        media.getStorageKey(),
-                        media.getAltText(),
-                        media.getPosition(),
-                        media.isPrimary(),
-                        media.getId(),
-                        media.getProductId());
+                        connection -> {
+                            PreparedStatement statement = connection.prepareStatement(UPDATE_SQL);
+                            bindUpdate(statement, media);
+                            return statement;
+                        });
         if (updated == 0) {
-            throw new OptimisticLockingFailureException(
+            throw new ProductConcurrentModificationException(
                     "Media was changed or does not exist: " + media.getId());
         }
         return updated;
@@ -168,7 +161,9 @@ public class ProductMediaRepository {
         ProductMediaEntity media =
                 findById(id)
                         .orElseThrow(
-                                () -> new IllegalArgumentException("Media does not exist: " + id));
+                                () ->
+                                        new ProductConcurrentModificationException(
+                                                "Media does not exist: " + id));
         return deleteById(id, media.getProductId(), currentProductVersion(media.getProductId()));
     }
 
@@ -177,7 +172,7 @@ public class ProductMediaRepository {
         productRepository.incrementVersion(productId, expectedProductVersion);
         int deleted = jdbcTemplate.update(DELETE_SQL, id, productId);
         if (deleted == 0) {
-            throw new OptimisticLockingFailureException(
+            throw new ProductConcurrentModificationException(
                     "Media was changed or does not exist: " + id);
         }
         return deleted;
@@ -186,30 +181,35 @@ public class ProductMediaRepository {
     @Transactional
     public void reorder(UUID productId, List<UUID> mediaIds, long expectedProductVersion) {
         productRepository.incrementVersion(productId, expectedProductVersion);
+        if (mediaIds == null || mediaIds.isEmpty()) {
+            return;
+        }
         jdbcTemplate.batchUpdate(
-                "UPDATE product_media SET position = ? WHERE product_id = ? AND id = ?",
-                mediaIds,
-                mediaIds.size(),
-                (statement, mediaId) -> {
-                    int position = mediaIds.indexOf(mediaId);
-                    statement.setInt(1, position);
-                    statement.setObject(2, productId);
-                    statement.setObject(3, mediaId);
+                REORDER_SQL,
+                new BatchPreparedStatementSetter() {
+                    @Override
+                    public void setValues(PreparedStatement statement, int index)
+                            throws SQLException {
+                        statement.setInt(1, index);
+                        statement.setObject(2, productId);
+                        statement.setObject(3, mediaIds.get(index));
+                    }
+
+                    @Override
+                    public int getBatchSize() {
+                        return mediaIds.size();
+                    }
                 });
     }
 
     @Transactional
     public int setPrimary(UUID productId, UUID mediaId, long expectedProductVersion) {
         productRepository.incrementVersion(productId, expectedProductVersion);
-        jdbcTemplate.update(
-                "UPDATE product_media SET is_primary = FALSE WHERE product_id = ?", productId);
-        int updated =
-                jdbcTemplate.update(
-                        "UPDATE product_media SET is_primary = TRUE WHERE product_id = ? AND id = ?",
-                        productId,
-                        mediaId);
+        jdbcTemplate.update(CLEAR_PRIMARY_SQL, productId);
+        int updated = jdbcTemplate.update(SET_PRIMARY_SQL, productId, mediaId);
         if (updated == 0) {
-            throw new DataIntegrityViolationException("Media does not belong to product");
+            throw new ProductConcurrentModificationException(
+                    "Media does not belong to product: " + mediaId);
         }
         return updated;
     }
@@ -219,19 +219,61 @@ public class ProductMediaRepository {
         if (mediaItems == null || mediaItems.isEmpty()) {
             return new int[0];
         }
-        int[] results = new int[mediaItems.size()];
-        for (int index = 0; index < mediaItems.size(); index++) {
-            insert(mediaItems.get(index));
-            results[index] = 1;
+        List<UUID> productIds =
+                mediaItems.stream().map(ProductMediaEntity::getProductId).distinct().toList();
+        if (productIds.size() != 1) {
+            throw new IllegalArgumentException(
+                    "Batch insert must target a single product: " + productIds);
         }
-        return results;
+        UUID productId = productIds.getFirst();
+        productRepository.incrementVersion(productId, currentProductVersion(productId));
+        return jdbcTemplate.batchUpdate(
+                INSERT_SQL,
+                new BatchPreparedStatementSetter() {
+                    @Override
+                    public void setValues(PreparedStatement statement, int index)
+                            throws SQLException {
+                        bindInsert(statement, mediaItems.get(index));
+                    }
+
+                    @Override
+                    public int getBatchSize() {
+                        return mediaItems.size();
+                    }
+                });
     }
 
     private long currentProductVersion(UUID productId) {
-        return jdbcTemplate.queryForObject(
-                "SELECT version FROM products WHERE id = ? AND deleted_at IS NULL FOR UPDATE",
-                Long.class,
-                productId);
+        List<Long> versions =
+                jdbcTemplate.query(
+                        SELECT_VERSION_SQL, (rs, row) -> rs.getLong("version"), productId);
+        if (versions.isEmpty()) {
+            throw new ProductConcurrentModificationException(
+                    "Product aggregate does not exist or is deleted: " + productId);
+        }
+        return versions.getFirst();
+    }
+
+    private void bindInsert(PreparedStatement statement, ProductMediaEntity media)
+            throws SQLException {
+        statement.setObject(1, media.getId());
+        statement.setObject(2, media.getProductId());
+        statement.setString(3, media.getMediaType());
+        statement.setString(4, media.getStorageKey());
+        statement.setString(5, media.getAltText());
+        statement.setInt(6, media.getPosition());
+        statement.setBoolean(7, media.isPrimary());
+    }
+
+    private void bindUpdate(PreparedStatement statement, ProductMediaEntity media)
+            throws SQLException {
+        statement.setString(1, media.getMediaType());
+        statement.setString(2, media.getStorageKey());
+        statement.setString(3, media.getAltText());
+        statement.setInt(4, media.getPosition());
+        statement.setBoolean(5, media.isPrimary());
+        statement.setObject(6, media.getId());
+        statement.setObject(7, media.getProductId());
     }
 
     private static ProductMediaEntity map(ResultSet rs, int row) throws SQLException {
