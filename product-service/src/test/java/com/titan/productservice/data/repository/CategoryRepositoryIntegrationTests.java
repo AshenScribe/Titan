@@ -5,13 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.titan.productservice.config.*;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.util.*;
+import com.titan.productservice.data.entity.ProductCategoryEntity;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -62,7 +56,7 @@ class CategoryRepositoryIntegrationTests extends AbstractRepositoryIntegrationTe
         var product = product("category-reference");
         products.insert(product);
         productCategories.insert(
-                new com.titan.productservice.entity.ProductCategoryEntity(
+                new ProductCategoryEntity(
                         product.getId(), child.getId(), false, null),
                 0);
         assertThrows(

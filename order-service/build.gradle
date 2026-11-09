@@ -1,0 +1,215 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.diffplug.spotless' version '7.0.2'
+    id 'jacoco'
+    id 'checkstyle'
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+group = 'com.titan.product'
+version = '0.0.1-SNAPSHOT'
+description = 'order-service'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat('1.27.0').aosp()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+checkstyle {
+    toolVersion = '10.21.4'
+    configFile = file('config/checkstyle/checkstyle.xml')
+    maxWarnings = 0
+    ignoreFailures = false
+}
+
+tasks.withType(Checkstyle).configureEach {
+    source = source.filter { file ->
+        !file.absolutePath.contains("${File.separator}build${File.separator}generated${File.separator}")
+    }
+    exclude { details ->
+        details.file.path.contains(
+                "${File.separator}build${File.separator}generated${File.separator}")
+    }
+}
+
+jacoco {
+    toolVersion = '0.8.13'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'io.grpc:grpc-netty-shaded:1.84.1'
+    implementation 'io.grpc:grpc-protobuf:1.84.1'
+    implementation 'io.grpc:grpc-stub:1.84.1'
+    compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    implementation 'org.postgresql:postgresql'
+
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+
+    testImplementation platform('org.testcontainers:testcontainers-bom:2.0.5')
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-jdbc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+
+    testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+    testImplementation 'org.testcontainers:testcontainers-postgresql'
+    testImplementation 'com.redis:testcontainers-redis:2.2.2'
+
+    testImplementation 'io.grpc:grpc-inprocess:1.84.1'
+
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+protobuf {
+    protoc { artifact = 'com.google.protobuf:protoc:4.29.3' }
+    plugins {
+        grpc { artifact = 'io.grpc:protoc-gen-grpc-java:1.84.1' }
+    }
+    generateProtoTasks {
+        all()*.plugins { grpc {} }
+    }
+}
+
+sourceSets {
+    main {
+        proto { srcDir '../contracts' }
+    }
+}
+
+// Shared exclusions for JaCoCo (Generated code, Records, POJOs)
+def jacocoExclusions = [
+        '**/catalog/v1/**',
+        '**/data/entity/*Entity.class',
+        '**/data/entity/*Snapshot.class',
+        '**/data/entity/*Envelope.class',
+        '**/data/entity/*Event.class',
+        '**/dto/*Models*.class',
+        '**/OrderServiceApplication.class',
+        '**/config/OrderCacheProperties.class',
+        '**/service/UnavailableProductVariantProvider.class'
+]
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+
+    testLogging {
+        events "PASSED", "FAILED", "SKIPPED"
+        exceptionFormat "full"
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        showStandardStreams = false
+    }
+
+    afterSuite { desc, result ->
+        if (desc.parent == null) {
+            def total = result.testCount
+            def passed = result.successfulCount
+            def failed = result.failedCount
+            def skipped = result.skippedTestCount
+            def rate = total > 0 ? String.format('%.2f', (passed * 100.0) / total) : '0.00'
+
+            println "\n" + "=" * 54
+            println "                  TEST EXECUTION SUMMARY              "
+            println "=" * 54
+            println "  Total Tests : ${total}"
+            println "  Pass        : ${passed}"
+            println "  Failed      : ${failed}"
+            println "  Skipped     : ${skipped}"
+            println "  Success Rate: ${rate}%"
+            println "  Result      : ${result.resultType}"
+            println "=" * 54 + "\n"
+        }
+    }
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+
+    // Lazy filtering instead of mutation
+    classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: jacocoExclusions)
+            })
+    )
+
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = false
+    }
+}
+
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('test')
+
+    // Lazy filtering instead of mutation
+    classDirectories.setFrom(
+            files(classDirectories.files.collect {
+                fileTree(dir: it, exclude: jacocoExclusions)
+            })
+    )
+
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.75
+            }
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.65
+            }
+            limit {
+                counter = 'INSTRUCTION'
+                value = 'COVEREDRATIO'
+                minimum = 0.75
+            }
+            limit {
+                counter = 'METHOD'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+            limit {
+                counter = 'CLASS'
+                value = 'COVEREDRATIO'
+                minimum = 0.85
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('spotlessApply')
+    dependsOn tasks.named('checkstyleMain')
+    dependsOn tasks.named('checkstyleTest')
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}

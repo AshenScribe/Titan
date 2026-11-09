@@ -36,14 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.titan.productservice.TestcontainersConfiguration;
-import com.titan.productservice.config.*;
-import com.titan.productservice.controller.*;
-import com.titan.productservice.dto.*;
-import com.titan.productservice.entity.*;
-import com.titan.productservice.exception.*;
-import com.titan.productservice.repository.*;
-import com.titan.productservice.service.*;
-import com.titan.productservice.util.*;
+
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

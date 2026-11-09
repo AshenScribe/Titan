@@ -26,16 +26,11 @@
 package com.titan.productservice.data.repository;
 
 import com.titan.productservice.TestcontainersConfiguration;
-import com.titan.productservice.entity.CategoryEntity;
-import com.titan.productservice.entity.ProductEntity;
-import com.titan.productservice.entity.ProductMediaEntity;
-import com.titan.productservice.entity.ProductVariantEntity;
-import com.titan.productservice.repository.BrandRepository;
-import com.titan.productservice.repository.CategoryRepository;
-import com.titan.productservice.repository.ProductCategoryRepository;
-import com.titan.productservice.repository.ProductMediaRepository;
-import com.titan.productservice.repository.ProductRepository;
-import com.titan.productservice.repository.ProductVariantRepository;
+import com.titan.productservice.data.entity.CategoryEntity;
+import com.titan.productservice.data.entity.ProductEntity;
+import com.titan.productservice.data.entity.ProductMediaEntity;
+import com.titan.productservice.data.entity.ProductVariantEntity;
+
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
