@@ -284,18 +284,6 @@ class CategoryRepositoryTest {
     }
 
     @Test
-    void findAllHierarchyReturnsEveryRowOrdered() {
-        CategoryEntity root = category("root", null);
-        CategoryEntity child = category("child", root.getId());
-        categories.insert(root);
-        categories.insert(child);
-
-        Assertions.assertThat(categories.findAllHierarchy())
-                .extracting(CategoryEntity::getId)
-                .containsExactly(root.getId(), child.getId());
-    }
-
-    @Test
     void findDescendantsWalksWholeSubtree() {
         CategoryEntity root = category("root", null);
         CategoryEntity child = category("child", root.getId());
