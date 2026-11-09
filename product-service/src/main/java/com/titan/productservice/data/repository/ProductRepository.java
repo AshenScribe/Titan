@@ -28,9 +28,18 @@ package com.titan.productservice.data.repository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.titan.productservice.presentation.dto.PublicProductListQuery;
 import com.titan.productservice.data.entity.ProductChangedEvent;
 import com.titan.productservice.data.entity.ProductEntity;
+import com.titan.productservice.data.exception.ProductConcurrentModificationException;
+import com.titan.productservice.presentation.dto.PublicProductListQuery;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -41,13 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class ProductRepository {
@@ -437,7 +439,7 @@ public class ProductRepository {
                         productId,
                         expectedVersion);
         if (versions.isEmpty()) {
-            throw new OptimisticLockingFailureException(
+            throw new ProductConcurrentModificationException(
                     "Product aggregate was changed, deleted, or does not exist: " + productId);
         }
         long version = versions.getFirst();

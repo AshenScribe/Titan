@@ -28,8 +28,8 @@ package com.titan.productservice.data.repository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.titan.productservice.presentation.dto.BrandListQuery;
 import com.titan.productservice.data.entity.BrandEntity;
+import com.titan.productservice.presentation.dto.BrandListQuery;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -49,12 +49,9 @@ import java.util.UUID;
 @Repository
 public class BrandRepository {
 
-    private static final String COLUMNS =
-            "id, name, slug, description, website_url, logo_url, metadata, is_active, created_at, updated_at";
-    private static final String SELECT_BY_ID_SQL =
-            "SELECT " + COLUMNS + " FROM brands WHERE id = ?";
-    private static final String SELECT_BY_SLUG_SQL =
-            "SELECT " + COLUMNS + " FROM brands WHERE LOWER(slug) = LOWER(?)";
+    private static final String COLUMNS = "id, name, slug, description, website_url, logo_url, metadata, is_active, created_at, updated_at";
+    private static final String SELECT_BY_ID_SQL = "SELECT " + COLUMNS + " FROM brands WHERE id = ?";
+    private static final String SELECT_BY_SLUG_SQL = "SELECT " + COLUMNS + " FROM brands WHERE LOWER(slug) = LOWER(?)";
     private static final String SELECT_ACTIVE_SQL =
             "SELECT "
                     + COLUMNS
