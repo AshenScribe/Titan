@@ -25,7 +25,6 @@
 
 package com.titan.productservice.data.exception;
 
-import org.jspecify.annotations.NonNull;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.support.SQLExceptionTranslator;
 import org.springframework.jdbc.support.SQLStateSQLExceptionTranslator;
@@ -39,11 +38,15 @@ public final class ProductSQLExceptionTranslator implements SQLExceptionTranslat
     private final SQLExceptionTranslator delegate = new SQLStateSQLExceptionTranslator();
 
     @Override
-    public DataAccessException translate(@NonNull String task, String sql, SQLException ex) {
+    public DataAccessException translate(String task, String sql, SQLException ex) {
 
         String state = ex.getSQLState();
         if (state == null) {
             return delegate.translate(task, sql, ex);
+        }
+
+        if ("P0001".equals(state)) {
+            return translateRaise(ex);
         }
 
         return switch (state) {
@@ -55,6 +58,20 @@ public final class ProductSQLExceptionTranslator implements SQLExceptionTranslat
             case "22P02" -> new ProductInvalidValueException(ex);
             default -> delegate.translate(task, sql, ex);
         };
+    }
+
+    private DataAccessException translateRaise(SQLException ex) {
+        String message = serverMessage(ex);
+        if (message != null) {
+            if (message.contains("must have at least one active variant")) {
+                return new ActiveProductRequiresVariantException(ex);
+            }
+            if (message.contains("Category hierarchy cycle")
+                    || message.contains("cannot be its own parent")) {
+                return new CategoryHierarchyCycleException(ex);
+            }
+        }
+        return new ProductCheckConstraintViolationException(ex);
     }
 
     private DataAccessException translateUnique(SQLException ex) {
