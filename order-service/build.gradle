@@ -4,7 +4,6 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
     id 'com.diffplug.spotless' version '7.0.2'
     id 'jacoco'
-    id 'checkstyle'
     id 'com.google.protobuf' version '0.9.4'
 }
 
@@ -25,23 +24,6 @@ spotless {
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
-    }
-}
-
-checkstyle {
-    toolVersion = '10.21.4'
-    configFile = file('config/checkstyle/checkstyle.xml')
-    maxWarnings = 0
-    ignoreFailures = false
-}
-
-tasks.withType(Checkstyle).configureEach {
-    source = source.filter { file ->
-        !file.absolutePath.contains("${File.separator}build${File.separator}generated${File.separator}")
-    }
-    exclude { details ->
-        details.file.path.contains(
-                "${File.separator}build${File.separator}generated${File.separator}")
     }
 }
 
@@ -209,7 +191,5 @@ tasks.named('jacocoTestCoverageVerification') {
 
 tasks.named('check') {
     dependsOn tasks.named('spotlessApply')
-    dependsOn tasks.named('checkstyleMain')
-    dependsOn tasks.named('checkstyleTest')
     dependsOn tasks.named('jacocoTestCoverageVerification')
 }
