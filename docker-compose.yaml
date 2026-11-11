@@ -18,8 +18,8 @@ services:
 
   product-service:
     build:
-      context: product-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: product-service/Dockerfile
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
@@ -28,6 +28,24 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
       - "${PRODUCT_SERVICE_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+
+  order-service:
+    build:
+      context: .
+      dockerfile: order-service/Dockerfile
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-order_db}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+    - "${PRODUCT_SERVICE_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy

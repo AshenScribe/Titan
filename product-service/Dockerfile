@@ -7,30 +7,31 @@ ENV GRADLE_USER_HOME=${GRADLE_USER_HOME}
 
 WORKDIR /app
 
-COPY gradlew .
-COPY gradle ./gradle
+COPY product-service/gradlew .
+COPY product-service/gradle ./gradle
 
 RUN --mount=type=cache,target=${GRADLE_USER_HOME} \
     --mount=type=cache,target=${GRADLE_USER_HOME}/wrapper \
     chmod +x ./gradlew && \
     ./gradlew --version --no-daemon
 
-COPY settings.gradle ./
-COPY build.gradle ./
+COPY product-service/settings.gradle ./
+COPY product-service/build.gradle ./
+
+COPY contracts ./contracts
 
 RUN --mount=type=cache,target=${GRADLE_USER_HOME} \
     --mount=type=cache,target=${GRADLE_USER_HOME}/wrapper \
     ./gradlew dependencies --no-daemon --console=plain
 
-COPY config ./config
-COPY src ./src
+COPY product-service/src ./src
 
 RUN --mount=type=cache,target=${GRADLE_USER_HOME} \
     --mount=type=cache,target=${GRADLE_USER_HOME}/wrapper \
     ./gradlew bootJar --no-daemon \
         -x test \
         -x check \
-        -x spotlessCheck \
+        -x jacocoTestVerification \
         -x spotlessApply \
         --console=plain
 

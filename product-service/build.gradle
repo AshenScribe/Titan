@@ -73,7 +73,7 @@ protobuf {
 
 sourceSets {
     main {
-        proto { srcDir '../contracts' }
+        proto { srcDir 'contracts' }
     }
 }
 
@@ -152,6 +152,7 @@ tasks.named('jacocoTestCoverageVerification') {
 }
 
 tasks.named('processResources') {
+    dependsOn 'copyContracts'
     from('src/main/java/com/titan/productservice/data/migration') {
         into('db/migration')
     }
@@ -160,4 +161,14 @@ tasks.named('processResources') {
 tasks.named('check') {
     dependsOn tasks.named('spotlessApply')
     dependsOn tasks.named('jacocoTestCoverageVerification')
+}
+
+tasks.named('generateProto') {
+    dependsOn 'copyContracts'
+}
+
+tasks.register('copyContracts', Copy) {
+    description = 'Copies contract files from the workspace root into the local service directory'
+    from '../contracts'
+    into 'contracts'
 }
