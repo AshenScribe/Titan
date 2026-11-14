@@ -1,0 +1,6 @@
+services:
+  product-service:
+    image: titan/product-service:test
+
+  order-service:
+    image: titan/order-service:test

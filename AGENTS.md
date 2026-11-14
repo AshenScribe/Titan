@@ -5,19 +5,19 @@ Solo dev, 8 GB RAM laptop. Depth over breadth; a small system that is provably
 correct beats a big one that only works on the happy path.
 
 ## Invariants (never break)
-1. An accepted order is never lost, even if one component crashes.
+1. An accepted orderDomain is never lost, even if one component crashes.
 2. An event is never processed twice in effect (idempotent consumers; delivery is at-least-once).
 3. Stock never goes below zero.
 4. A client retry never double-charges (idempotency keys).
 5. A service never touches another service's database.
 6. No secrets or personal data in logs or prompts.
-7. Orders take price and name from product-service (snapshot at order time), never from search results.
+7. Orders take price and name from product-service (snapshot at orderDomain time), never from search results.
 
 ## Services
 | Service           | Role               | Owns                                                                       | Status      |
 |-------------------|--------------------|----------------------------------------------------------------------------|-------------|
 | product-service   | Write side         | Catalog (Postgres, source of truth); emits `product.updated.v1` via outbox | Built       |
-| order-service     | Order lifecycle    | Orders, outbox, saga state                                                 | Built       |
+| orderDomain-service     | Order lifecycle    | Orders, outbox, saga state                                                 | Built       |
 | inventory-service | Stock              | Stock counts, reservations, expiry                                         | Not started |
 | payment-service   | Simulated payments | Payment attempts, idempotency keys                                         | Not started |
 | gateway           | Edge               | Routing, JWT validation, rate limiting                                     | <fill in>   |
@@ -31,7 +31,7 @@ correct beats a big one that only works on the happy path.
 - gRPC for synchronous service-to-service calls; Kafka for events.
 - Events go through the transactional outbox + Debezium. No dual writes.
 - Caching only on the read-heavy catalog path (cache-aside, TTL with jitter,
-  single-flight, version-stamped values). No caching of order or inventory state.
+  single-flight, version-stamped values). No caching of orderDomain or inventory state.
 - No distributed locks for correctness. Use DB transactions, unique constraints,
   optimistic versioning, and `SKIP LOCKED`. If a lock is ever added, it needs
   fencing and an ADR.
@@ -56,14 +56,14 @@ Don't add libraries without asking.
   connection-pool bottlenecks.
 - Coverage numbers don't prove correctness. Proofs below do.
 
-## Build order and status
+## Build orderDomain and status
 Numbers below are build steps. Update "Proof exists" only when the result is saved
 in `docs/results/` with date and setup.
 
 | Step | What                                                              | Built     | Proof exists           | Result file |
 |------|-------------------------------------------------------------------|-----------|------------------------|-------------|
 | 1    | product-service: catalog CRUD, Redis cache, invalidation          | yes       | <fill in>              |             |
-| 2    | order-service + outbox + Debezium + one idempotent consumer       | yes       | <fill in: chaos test?> |             |
+| 2    | orderDomain-service + outbox + Debezium + one idempotent consumer       | yes       | <fill in: chaos test?> |             |
 | 3    | search-service: ES index fed by product events (replay-safe)      | <fill in> | <fill in>              |             |
 | 5    | payment-service + saga + compensation (one test per failure path) | no        | no                     |             |
 | 6    | Resilience: gRPC deadlines, circuit breaker, idempotency keys     | no        | no                     |             |
@@ -81,7 +81,7 @@ Built does not mean done. Code without its proof counts as unfinished.
 - Step 6: slow or kill payment-service; no cascading failure; a retried request doesn't charge twice.
 
 ## If time runs short (cut from the bottom)
-Minimum credible project = steps 1, 2, 4, 5 plus 4 ADRs. Drop in this order:
+Minimum credible project = steps 1, 2, 4, 5 plus 4 ADRs. Drop in this orderDomain:
 user-service/MFA, then observability, then search. Never drop the proof for a step that stays.
 
 ## ADRs (docs/adr/)
@@ -103,7 +103,7 @@ previous one has its proof, say so.
 
 ## Current work (update every session)
 - Goal: <e.g. step 4, inventory-service reservation + locking>
-- Done so far: product-service, order-service built; coverage reports exist
+- Done so far: product-service, orderDomain-service built; coverage reports exist
 - Next:
 - Stuck on:
 - Relevant files / ADRs:

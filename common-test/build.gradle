@@ -1,0 +1,81 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.titan.common-test'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+def composeDir = rootProject.projectDir.parentFile
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:6.0.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    testImplementation 'org.assertj:assertj-core:3.26.3'
+    testImplementation 'org.awaitility:awaitility:4.2.2'
+
+    testImplementation 'org.postgresql:postgresql:42.7.3'
+
+    testImplementation 'com.fasterxml.jackson.core:jackson-databind:2.17.1'
+    testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.1'
+
+    implementation platform('org.testcontainers:testcontainers-bom:2.0.5')
+    implementation 'org.testcontainers:testcontainers-postgresql'
+    implementation 'org.testcontainers:testcontainers-kafka'
+    implementation 'org.testcontainers:testcontainers-junit-jupiter'
+    implementation 'com.redis:testcontainers-redis:2.2.2'
+
+    testImplementation 'org.apache.kafka:kafka-clients:3.7.0'
+}
+
+tasks.register("buildServices", Exec) {
+    group = "docker"
+    description = "Builds service images using Docker Compose for Testcontainers"
+
+    workingDir = composeDir
+    commandLine "docker", "compose",
+            "-f", "docker-compose.yaml",
+            "-f", "docker-compose.test.yaml",
+            "build", "product-service", "order-service"
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
+
+    dependsOn "buildServices"
+
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        showStandardStreams = false
+    }
+
+    afterSuite { desc, result ->
+        if (desc.parent == null) {
+            def total = result.testCount
+            def passed = result.successfulCount
+            def failed = result.failedCount
+            def skipped = result.skippedTestCount
+            def rate = total > 0 ? String.format('%.2f', (passed * 100.0) / total) : '0.00'
+
+            println "\n" + "=" * 54
+            println "                  TEST EXECUTION SUMMARY              "
+            println "=" * 54
+            println "  Total Tests : ${total}"
+            println "  Pass        : ${passed}"
+            println "  Failed      : ${failed}"
+            println "  Skipped     : ${skipped}"
+            println "  Success Rate: ${rate}%"
+            println "  Result      : ${result.resultType}"
+            println "=" * 54 + "\n"
+        }
+    }
+}

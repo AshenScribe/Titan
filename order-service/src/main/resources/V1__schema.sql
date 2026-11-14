@@ -104,7 +104,7 @@ CREATE TABLE order_items
         UNIQUE (order_id, position)
 );
 
--- before placing an order, order's hash must be checked in this table, each row must be cleared after expired_at
+-- before placing an orderDomain, orderDomain's hash must be checked in this table, each row must be cleared after expired_at
 CREATE TABLE order_idempotency
 (
     user_id         UUID         NOT NULL,

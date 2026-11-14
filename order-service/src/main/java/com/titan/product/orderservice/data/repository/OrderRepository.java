@@ -134,9 +134,9 @@ public class OrderRepository {
     }
 
     /**
-     * Inserts a new order into the database.
+     * Inserts a new orderDomain into the database.
      *
-     * @param orderEntity the order entity to insert
+     * @param orderEntity the orderDomain entity to insert
      */
     public void insert(OrderEntity orderEntity) {
         execute(
@@ -147,21 +147,21 @@ public class OrderRepository {
     }
 
     /**
-     * Finds an order by its unique identifier.
+     * Finds an orderDomain by its unique identifier.
      *
-     * @param id the unique order ID
-     * @return the matching order, or empty if not found
+     * @param id the unique orderDomain ID
+     * @return the matching orderDomain, or empty if not found
      */
     public Optional<OrderEntity> findById(UUID id) {
         return execute(() -> jdbcTemplate.query(FIND_BY_ID, orderMapper, id).stream().findFirst());
     }
 
     /**
-     * Finds an order belonging to a specific user.
+     * Finds an orderDomain belonging to a specific user.
      *
-     * @param id the order ID
+     * @param id the orderDomain ID
      * @param userId the user ID
-     * @return the matching order, or empty if not found
+     * @return the matching orderDomain, or empty if not found
      */
     public Optional<OrderEntity> findByIdForUser(UUID id, UUID userId) {
         return execute(
@@ -213,9 +213,9 @@ public class OrderRepository {
     }
 
     /**
-     * Cancels a pending order belonging to a user.
+     * Cancels a pending orderDomain belonging to a user.
      *
-     * @param id the order ID
+     * @param id the orderDomain ID
      * @param userId the user ID
      * @param cancelledAt the cancellation timestamp
      * @return the number of affected rows
@@ -225,17 +225,17 @@ public class OrderRepository {
     }
 
     /**
-     * Represents an order and its associated item count.
+     * Represents an orderDomain and its associated item count.
      *
-     * @param order the order
+     * @param orderDomain the orderDomain
      * @param itemCount the number of items
      */
-    public record OrderPageRow(OrderEntity order, int itemCount) {}
+    public record OrderPageRow(OrderEntity orderDomain, int itemCount) {}
 
     /**
      * Finds all orders matching the specified status.
      *
-     * @param status the order status
+     * @param status the orderDomain status
      * @return matching orders ordered by creation time descending
      */
     public List<OrderEntity> findByStatus(OrderStatus status) {

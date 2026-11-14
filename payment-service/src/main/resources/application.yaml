@@ -1,0 +1,71 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:product_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+  application:
+    name: payment-service
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      acks: all
+      retries: 2147483647
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 5
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:payment-service}
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      isolation-level: read_committed
+      max-poll-records: ${KAFKA_CONSUMER_MAX_POLL_RECORDS:100}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.titan.*
+        spring.json.use.type.headers: false
+    listener:
+      ack-mode: manual_immediate
+      concurrency: ${KAFKA_LISTENER_CONCURRENCY:3}
+    properties:
+      security.protocol: ${KAFKA_SECURITY_PROTOCOL:PLAINTEXT}
+      sasl.mechanism: ${KAFKA_SASL_MECHANISM:}
+      sasl.jaas.config: ${KAFKA_SASL_JAAS_CONFIG:}
+  config:
+    activate:
+      on-profile:
+        - prod
+app:
+  kafka:
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:payment-service}
+    topics:
+      order-created: ${KAFKA_TOPIC_ORDER_CREATED:order.created}
+      payment-success: ${KAFKA_TOPIC_PAYMENT_SUCCESS:payment.success}
+      payment-failed: ${KAFKA_TOPIC_PAYMENT_FAILED:payment.failed}
+      refund-created: ${KAFKA_TOPIC_REFUND_CREATED:refund.created}
+      refund-processed: ${KAFKA_TOPIC_REFUND_PROCESSED:refund.processed}
+      refund-failed: ${KAFKA_TOPIC_REFUND_FAILED:refund.failed}
+    retry:
+      max-attempts: ${KAFKA_RETRY_MAX_ATTEMPTS:5}
+      initial-interval-ms: ${KAFKA_RETRY_INITIAL_INTERVAL_MS:1000}
+      multiplier: ${KAFKA_RETRY_MULTIPLIER:2.0}
+      max-interval-ms: ${KAFKA_RETRY_MAX_INTERVAL_MS:10000}
+
+
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID}
+  key-secret: ${RAZORPAY_KEY_SECRET}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET}

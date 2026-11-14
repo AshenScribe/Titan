@@ -87,9 +87,9 @@ public class OrderItemRepository {
     }
 
     /**
-     * Inserts a new order item into the database.
+     * Inserts a new orderDomain item into the database.
      *
-     * @param orderItemEntity the order item entity to insert
+     * @param orderItemEntity the orderDomain item entity to insert
      */
     public void insert(OrderItemEntity orderItemEntity) {
         execute(
@@ -100,10 +100,10 @@ public class OrderItemRepository {
     }
 
     /**
-     * Finds an order item by its unique identifier.
+     * Finds an orderDomain item by its unique identifier.
      *
-     * @param id the unique order item ID
-     * @return the matching order item, or empty if not found
+     * @param id the unique orderDomain item ID
+     * @return the matching orderDomain item, or empty if not found
      */
     public Optional<OrderItemEntity> findById(UUID id) {
         return execute(
@@ -111,10 +111,10 @@ public class OrderItemRepository {
     }
 
     /**
-     * Finds all order items associated with a specific order.
+     * Finds all orderDomain items associated with a specific orderDomain.
      *
-     * @param orderId the order ID
-     * @return matching order items ordered by position ascending
+     * @param orderId the orderDomain ID
+     * @return matching orderDomain items ordered by position ascending
      */
     public List<OrderItemEntity> findByOrderId(UUID orderId) {
         return execute(() -> jdbcTemplate.query(FIND_BY_ORDER_ID, orderItemMapper, orderId));

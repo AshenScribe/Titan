@@ -32,16 +32,16 @@ a big one that only works on the happy path.
   why (the bottleneck matters more than the number).
 - Cache hit rate and consumer lag visible on a dashboard.
 
-### Build order (do not start a step before the previous one has its proof)
+### Build orderDomain (do not start a step before the previous one has its proof)
 1. **product-service (catalog only):** CRUD on Postgres, Redis cache with an
    invalidation strategy. Proof: tests pass, cache hit/miss visible in logs.
-2. **order-service + outbox + Debezium + one idempotent consumer.**
+2. **orderDomain-service + outbox + Debezium + one idempotent consumer.**
    Proof: chaos test kills a service or Kafka Connect mid-flow; zero lost and
    zero duplicate orders.
 3. **product-service search (`search/` package):** Elasticsearch index fed by
    product events through the same pipeline, behind `ProductSearchIndex`.
    Proof: replaying the same event twice leaves the index unchanged; a stale
-   index never affects order prices or stock checks.
+   index never affects orderDomain prices or stock checks.
 4. **inventory-service + concurrency test.**
    Proof: 1,000 concurrent buyers vs 10 units, exactly 10 succeed.
 5. **payment-service + saga + compensation.**
